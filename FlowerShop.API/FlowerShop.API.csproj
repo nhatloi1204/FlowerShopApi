@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
@@ -20,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include=".copilot\AUTHORIZATION_PLAN.md" />
     <None Include=".copilot\PHASE_1\00_START_HERE.md" />
     <None Include=".copilot\PHASE_1\DELIVERY_REPORT.md" />
     <None Include=".copilot\instruction.md" />
