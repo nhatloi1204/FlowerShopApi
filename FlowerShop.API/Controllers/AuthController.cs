@@ -40,4 +40,12 @@ public class AuthController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpPost("external-login")]
+    public async Task<ActionResult<AuthResponse<LoginResponse>>> ExternalLogin([FromBody] ExternalAuthRequest request)
+    {
+        var result = await _authService.ExternalLoginAsync(request);
+        if (!result.Success) return BadRequest(result);
+        return Ok(result);
+    }
 }

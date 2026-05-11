@@ -4,6 +4,7 @@ using FlowerShop.API.Models.DTOs.Auth;
 using FlowerShop.API.Models.Entities;
 using FlowerShop.API.Services.Abstract;
 using Microsoft.EntityFrameworkCore;
+using Google.Apis.Auth;
 
 namespace FlowerShop.API.Services.Concrete;
 
@@ -92,6 +93,66 @@ public class AuthService : IAuthService
         return new AuthResponse<LoginResponse> { Success = false, Message = "Invalid email or password" };
     }
 
+    public async Task<AuthResponse<LoginResponse>> ExternalLoginAsync(ExternalAuthRequest request)
+    {
+        if (request.Provider.ToUpper() == "GOOGLE")
+        {
+            try
+            {
+                // Verify token with Google
+                var settings = new GoogleJsonWebSignature.ValidationSettings()
+                {
+                    Audience = new List<string> { Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") }
+                };
+
+                var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
+
+                // 2. Check existing customer based on email or provider 
+                var customer = await _context.Customers
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(c => c.Email == payload.Email ||
+                                             (c.Provider == "GOOGLE" && c.ProviderAccountId == payload.Subject));
+
+                if (customer == null)
+                {
+                    // If not exist, create new customer
+                    customer = new Customer
+                    {
+                        Name = payload.Name,
+                        Email = payload.Email,
+                        Image = payload.Picture,
+                        Provider = "GOOGLE",
+                        ProviderAccountId = payload.Subject,
+                        EmailVerifiedAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _context.Customers.Add(customer);
+                }
+                else
+                {
+                    // If exist, update info and restore if soft-deleted
+                    customer.Name = payload.Name;
+                    customer.Image = payload.Picture;
+                    customer.UpdatedAt = DateTime.UtcNow;
+                    customer.DeletedAt = null;
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Generate JWT token
+                var token = _jwtHelper.GenerateToken(customer.Id, customer.Email!, new List<string>(), new List<string>());
+                return CreateLoginSuccessResponse(customer.Id, customer.Email!, customer.Name!, token);
+            }
+            catch (Exception)
+            {
+                return new AuthResponse<LoginResponse> { Success = false, Message = "Invalid External Token" };
+            }
+        }
+
+        return new AuthResponse<LoginResponse> { Success = false, Message = "Unsupported Provider" };
+    }
+
     private AuthResponse<LoginResponse> CreateLoginSuccessResponse(long id, string email, string name, string token)
     {
         return new AuthResponse<LoginResponse>
@@ -135,4 +196,6 @@ public class AuthService : IAuthService
             .Distinct()
             .ToListAsync();
     }
+
+
 }
