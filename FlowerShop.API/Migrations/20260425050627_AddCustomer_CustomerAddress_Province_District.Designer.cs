@@ -3,6 +3,7 @@ using System;
 using FlowerShop.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlowerShop.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260425050627_AddCustomer_CustomerAddress_Province_District")]
+    partial class AddCustomer_CustomerAddress_Province_District
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -175,6 +178,13 @@ namespace FlowerShop.API.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
+                    b.Property<long?>("DistrictId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("district_id");
+
+                    b.Property<long?>("DistrictId1")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("varchar(255)")
@@ -201,26 +211,56 @@ namespace FlowerShop.API.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<long?>("WardId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("ward_id");
-
-                    b.Property<long?>("WardId1")
-                        .HasColumnType("bigint");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("DistrictId");
+
+                    b.HasIndex("DistrictId1");
 
                     b.HasIndex("ProvinceId");
 
                     b.HasIndex("ProvinceId1");
 
-                    b.HasIndex("WardId");
-
-                    b.HasIndex("WardId1");
-
                     b.ToTable("customer_addresses", (string)null);
+                });
+
+            modelBuilder.Entity("FlowerShop.API.Models.Entities.District", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("name");
+
+                    b.Property<long?>("ProvinceId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("province_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProvinceId");
+
+                    b.ToTable("districts", (string)null);
                 });
 
             modelBuilder.Entity("FlowerShop.API.Models.Entities.Permission", b =>
@@ -621,49 +661,21 @@ namespace FlowerShop.API.Migrations
                     b.ToTable("users", (string)null);
                 });
 
-            modelBuilder.Entity("FlowerShop.API.Models.Entities.Ward", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("name");
-
-                    b.Property<long?>("ProvinceId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("province_id");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProvinceId");
-
-                    b.ToTable("wards", (string)null);
-                });
-
             modelBuilder.Entity("FlowerShop.API.Models.Entities.CustomerAddress", b =>
                 {
                     b.HasOne("FlowerShop.API.Models.Entities.Customer", "Customer")
                         .WithMany("Addresses")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("FlowerShop.API.Models.Entities.District", "District")
+                        .WithMany()
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("FlowerShop.API.Models.Entities.District", null)
+                        .WithMany("Addresses")
+                        .HasForeignKey("DistrictId1");
 
                     b.HasOne("FlowerShop.API.Models.Entities.Province", "Province")
                         .WithMany()
@@ -674,20 +686,21 @@ namespace FlowerShop.API.Migrations
                         .WithMany("Addresses")
                         .HasForeignKey("ProvinceId1");
 
-                    b.HasOne("FlowerShop.API.Models.Entities.Ward", "Ward")
-                        .WithMany()
-                        .HasForeignKey("WardId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("FlowerShop.API.Models.Entities.Ward", null)
-                        .WithMany("Addresses")
-                        .HasForeignKey("WardId1");
-
                     b.Navigation("Customer");
 
-                    b.Navigation("Province");
+                    b.Navigation("District");
 
-                    b.Navigation("Ward");
+                    b.Navigation("Province");
+                });
+
+            modelBuilder.Entity("FlowerShop.API.Models.Entities.District", b =>
+                {
+                    b.HasOne("FlowerShop.API.Models.Entities.Province", "Province")
+                        .WithMany("Districts")
+                        .HasForeignKey("ProvinceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Province");
                 });
 
             modelBuilder.Entity("FlowerShop.API.Models.Entities.PermissionRole", b =>
@@ -777,17 +790,12 @@ namespace FlowerShop.API.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("FlowerShop.API.Models.Entities.Ward", b =>
+            modelBuilder.Entity("FlowerShop.API.Models.Entities.Customer", b =>
                 {
-                    b.HasOne("FlowerShop.API.Models.Entities.Province", "Province")
-                        .WithMany("Wards")
-                        .HasForeignKey("ProvinceId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Province");
+                    b.Navigation("Addresses");
                 });
 
-            modelBuilder.Entity("FlowerShop.API.Models.Entities.Customer", b =>
+            modelBuilder.Entity("FlowerShop.API.Models.Entities.District", b =>
                 {
                     b.Navigation("Addresses");
                 });
@@ -801,12 +809,7 @@ namespace FlowerShop.API.Migrations
                 {
                     b.Navigation("Addresses");
 
-                    b.Navigation("Wards");
-                });
-
-            modelBuilder.Entity("FlowerShop.API.Models.Entities.Ward", b =>
-                {
-                    b.Navigation("Addresses");
+                    b.Navigation("Districts");
                 });
 #pragma warning restore 612, 618
         }

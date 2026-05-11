@@ -1,5 +1,4 @@
-using FlowerShop.API.Data;
-using FlowerShop.API.Data;
+﻿using FlowerShop.API.Data;
 using FlowerShop.API.Helpers;
 using FlowerShop.API.Models.DTOs.Auth;
 using FlowerShop.API.Models.Entities;
@@ -41,103 +40,99 @@ public class AuthService : IAuthService
         }
 
         // Check if email already exists
-        var existingUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Email);
+        var emailExists = await _context.Users.AnyAsync(u => u.Email == request.Email) ||
+                          await _context.Customers.AnyAsync(c => c.Email == request.Email);
 
-        if (existingUser != null)
-        {
-            return new AuthResponse<LoginResponse>
-            {
-                Success = false,
-                Message = "Email already exists"
-            };
-        }
+        if (emailExists)
+            return new AuthResponse<LoginResponse> { Success = false, Message = "Email already exists" };
 
-        // Create new user
-        var user = new User
+        var customer = new Customer
         {
             Name = request.Name,
             Email = request.Email,
-            Password = PasswordHelper.HashPassword(request.Password),
+            Password = PasswordHelper.HashPassword(request.Password!),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
-        _context.Users.Add(user);
+        _context.Customers.Add(customer);
         await _context.SaveChangesAsync();
 
-        // Generate token
-        var token = _jwtHelper.GenerateToken(user.Id, user.Email!);
-        var expirationMinutes = 60; // from config
-        var expiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes);
-
-        return new AuthResponse<LoginResponse>
-        {
-            Success = true,
-            Message = "User registered successfully",
-            Data = new LoginResponse
-            {
-                UserId = user.Id,
-                Email = user.Email,
-                Name = user.Name,
-                Token = token,
-                ExpiresAt = expiresAt
-            }
-        };
+        return await LoginAsync(new LoginRequest { Email = request.Email, Password = request.Password });
     }
 
     public async Task<AuthResponse<LoginResponse>> LoginAsync(LoginRequest request)
     {
-        // Validation
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+            return new AuthResponse<LoginResponse> { Success = false, Message = "Email and password are required" };
+
+        // --- BƯỚC 1: TÌM TRONG BẢNG USERS (ADMIN/STAFF) ---
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+
+        if (user != null && PasswordHelper.VerifyPassword(request.Password, user.Password!))
         {
-            return new AuthResponse<LoginResponse>
-            {
-                Success = false,
-                Message = "Email and password are required"
-            };
+            var roles = await GetUserRolesAsync(user.Id);
+            var permissions = await GetUserPermissionsAsync(user.Id);
+            var token = _jwtHelper.GenerateToken(user.Id, user.Email!, roles, permissions);
+
+            return CreateLoginSuccessResponse(user.Id, user.Email!, user.Name!, token);
         }
 
-        // Find user
-        var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Email);
+        // --- BƯỚC 2: TÌM TRONG BẢNG CUSTOMERS (KHÁCH HÀNG) ---
+        var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == request.Email);
 
-        if (user == null)
+        if (customer != null && PasswordHelper.VerifyPassword(request.Password, customer.Password!))
         {
-            return new AuthResponse<LoginResponse>
-            {
-                Success = false,
-                Message = "Invalid email or password"
-            };
+            // Khách hàng không có roles/permissions trong hệ thống quản trị
+            var token = _jwtHelper.GenerateToken(customer.Id, customer.Email!, new List<string>(), new List<string>());
+
+            return CreateLoginSuccessResponse(customer.Id, customer.Email!, customer.Name!, token);
         }
 
-        // Verify password
-        if (!PasswordHelper.VerifyPassword(request.Password, user.Password!))
-        {
-            return new AuthResponse<LoginResponse>
-            {
-                Success = false,
-                Message = "Invalid email or password"
-            };
-        }
+        return new AuthResponse<LoginResponse> { Success = false, Message = "Invalid email or password" };
+    }
 
-        // Generate token
-        var token = _jwtHelper.GenerateToken(user.Id, user.Email!);
-        var expirationMinutes = 60; // from config
-        var expiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes);
-
+    private AuthResponse<LoginResponse> CreateLoginSuccessResponse(long id, string email, string name, string token)
+    {
         return new AuthResponse<LoginResponse>
         {
             Success = true,
             Message = "Login successful",
             Data = new LoginResponse
             {
-                UserId = user.Id,
-                Email = user.Email,
-                Name = user.Name,
+                UserId = id,
+                Email = email,
+                Name = name,
                 Token = token,
-                ExpiresAt = expiresAt
+                ExpiresAt = DateTime.UtcNow.AddMinutes(60) // Có thể lấy từ config
             }
         };
+    }
+
+    /// <summary>
+    /// Get all roles of a user
+    /// </summary>
+    private async Task<List<string>> GetUserRolesAsync(long userId)
+    {
+        return await _context.RoleUsers
+            .Where(ru => ru.UserId == userId)
+            .Include(ru => ru.Role)
+            .Select(ru => ru.Role!.Title!)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Get all permissions of a user through their roles
+    /// </summary>
+    private async Task<List<string>> GetUserPermissionsAsync(long userId)
+    {
+        return await _context.RoleUsers
+            .Where(ru => ru.UserId == userId)
+            .Include(ru => ru.Role!)
+            .ThenInclude(r => r.Permissions)
+            .SelectMany(ru => ru.Role!.Permissions!)
+            .Select(p => p.Title!)
+            .Distinct()
+            .ToListAsync();
     }
 }

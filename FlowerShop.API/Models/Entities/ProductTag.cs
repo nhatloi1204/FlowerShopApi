@@ -2,27 +2,30 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FlowerShop.API.Models.Entities;
 
-public class Permission
+public class ProductTag
 {
     public long Id { get; set; }
-    public string? Title { get; set; }
+    public string? Name { get; set; }
+    public string? Slug { get; set; }
     public string? Description { get; set; }
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
 
     // Navigation properties
-    public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
     public static void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Permission>(entity =>
+        modelBuilder.Entity<ProductTag>(entity =>
         {
-            entity.ToTable("permissions");
+            entity.ToTable("product_tags");
             entity.HasKey(e => e.Id);
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Title).HasColumnName("title").HasColumnType("varchar(255)");
+            entity.Property(e => e.Name).HasColumnName("name").HasColumnType("varchar(100)").IsRequired();
+            entity.Property(e => e.Slug).HasColumnName("slug").HasColumnType("varchar(100)");
+            entity.HasIndex(e => e.Slug).IsUnique();
             entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(255)");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasColumnType("timestamp with time zone");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamp with time zone");
@@ -30,6 +33,14 @@ public class Permission
 
             // Global Query Filter - Soft Delete
             entity.HasQueryFilter(e => e.DeletedAt == null);
+
+            // Many-to-Many: ProductTag -> Product via ProductProductTag
+            entity.HasMany(e => e.Products)
+                .WithMany(p => p.ProductTags)
+                .UsingEntity<ProductProductTag>(
+                    l => l.HasOne<Product>().WithMany().HasForeignKey(ppt => ppt.ProductId),
+                    r => r.HasOne<ProductTag>().WithMany().HasForeignKey(ppt => ppt.TagId),
+                    j => j.HasKey(ppt => new { ppt.ProductId, ppt.TagId }));
         });
     }
 }
