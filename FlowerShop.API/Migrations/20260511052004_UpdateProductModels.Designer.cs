@@ -3,6 +3,7 @@ using System;
 using FlowerShop.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlowerShop.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260511052004_UpdateProductModels")]
+    partial class UpdateProductModels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -165,114 +168,6 @@ namespace FlowerShop.API.Migrations
                     b.ToTable("customer_addresses", (string)null);
                 });
 
-            modelBuilder.Entity("FlowerShop.API.Models.Entities.Media", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("CollectionName")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("collection_name");
-
-                    b.Property<string>("ConversionsDisk")
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("conversions_disk");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("CustomProperties")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("jsonb")
-                        .HasDefaultValue("{}")
-                        .HasColumnName("custom_properties");
-
-                    b.Property<string>("Disk")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("disk");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("file_name");
-
-                    b.Property<string>("GeneratedConversions")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("jsonb")
-                        .HasDefaultValue("{}")
-                        .HasColumnName("generated_conversions");
-
-                    b.Property<string>("Manipulations")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("jsonb")
-                        .HasDefaultValue("{}")
-                        .HasColumnName("manipulations");
-
-                    b.Property<string>("MimeType")
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("mime_type");
-
-                    b.Property<long>("ModelId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("model_id");
-
-                    b.Property<string>("ModelType")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("model_type");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("name");
-
-                    b.Property<int?>("OrderColumn")
-                        .HasColumnType("integer")
-                        .HasColumnName("order_column");
-
-                    b.Property<string>("ResponsiveImages")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("jsonb")
-                        .HasDefaultValue("{}")
-                        .HasColumnName("responsive_images");
-
-                    b.Property<long>("Size")
-                        .HasColumnType("bigint")
-                        .HasColumnName("size");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("Uuid")
-                        .HasColumnType("uuid")
-                        .HasColumnName("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderColumn")
-                        .HasDatabaseName("idx_media_order_column");
-
-                    b.HasIndex("Uuid")
-                        .IsUnique();
-
-                    b.HasIndex("ModelType", "ModelId")
-                        .HasDatabaseName("idx_media_model");
-
-                    b.ToTable("media", (string)null);
-                });
-
             modelBuilder.Entity("FlowerShop.API.Models.Entities.Permission", b =>
                 {
                     b.Property<long>("Id")
@@ -370,10 +265,9 @@ namespace FlowerShop.API.Migrations
                         .HasColumnType("varchar(255)")
                         .HasColumnName("slug");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("status");
+                    b.Property<long?>("StatusId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("status_id");
 
                     b.Property<int?>("StockQuantity")
                         .ValueGeneratedOnAdd()
@@ -392,6 +286,8 @@ namespace FlowerShop.API.Migrations
 
                     b.HasIndex("Slug")
                         .IsUnique();
+
+                    b.HasIndex("StatusId");
 
                     b.ToTable("products", (string)null);
                 });
@@ -469,6 +365,40 @@ namespace FlowerShop.API.Migrations
                     b.HasIndex("TagId");
 
                     b.ToTable("product_product_tag", (string)null);
+                });
+
+            modelBuilder.Entity("FlowerShop.API.Models.Entities.ProductStatus", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("product_statuses", (string)null);
                 });
 
             modelBuilder.Entity("FlowerShop.API.Models.Entities.ProductTag", b =>
@@ -734,6 +664,16 @@ namespace FlowerShop.API.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("FlowerShop.API.Models.Entities.Product", b =>
+                {
+                    b.HasOne("FlowerShop.API.Models.Entities.ProductStatus", "Status")
+                        .WithMany("Products")
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Status");
+                });
+
             modelBuilder.Entity("FlowerShop.API.Models.Entities.ProductProductCategory", b =>
                 {
                     b.HasOne("FlowerShop.API.Models.Entities.ProductCategory", "Category")
@@ -804,6 +744,11 @@ namespace FlowerShop.API.Migrations
             modelBuilder.Entity("FlowerShop.API.Models.Entities.Customer", b =>
                 {
                     b.Navigation("Addresses");
+                });
+
+            modelBuilder.Entity("FlowerShop.API.Models.Entities.ProductStatus", b =>
+                {
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("FlowerShop.API.Models.Entities.Province", b =>

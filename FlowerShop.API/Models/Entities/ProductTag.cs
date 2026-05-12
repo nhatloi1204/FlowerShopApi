@@ -6,8 +6,6 @@ public class ProductTag
 {
     public long Id { get; set; }
     public string? Name { get; set; }
-    public string? Slug { get; set; }
-    public string? Description { get; set; }
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
@@ -23,10 +21,7 @@ public class ProductTag
             entity.HasKey(e => e.Id);
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Name).HasColumnName("name").HasColumnType("varchar(100)").IsRequired();
-            entity.Property(e => e.Slug).HasColumnName("slug").HasColumnType("varchar(100)");
-            entity.HasIndex(e => e.Slug).IsUnique();
-            entity.Property(e => e.Description).HasColumnName("description").HasColumnType("varchar(255)");
+            entity.Property(e => e.Name).HasColumnName("name").HasColumnType("varchar(255)");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasColumnType("timestamp with time zone");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamp with time zone");
             entity.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("timestamp with time zone");

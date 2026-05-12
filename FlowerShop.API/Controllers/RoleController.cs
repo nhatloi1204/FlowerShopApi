@@ -3,7 +3,7 @@ using FlowerShop.API.Services.Abstract;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FlowerShop.API.Controllers.Admin;
+namespace FlowerShop.API.Controllers;
 
 [ApiController]
 [Route("api/admin/roles")]
