@@ -12,6 +12,7 @@ using DotNetEnv;
 DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddEnvironmentVariables();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -65,8 +66,13 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<ISlugService, SlugService>();
 builder.Services.AddScoped<AdminSeeder>();
 builder.Services.AddScoped<GeoSeeder>();
+builder.Services.AddScoped<IProductCategoryService, ProductCategoryService>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IMediaService, MediaService>();
 
 // Register Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();

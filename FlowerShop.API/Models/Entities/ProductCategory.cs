@@ -2,20 +2,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FlowerShop.API.Models.Entities;
 
-public class ProductCategory
+public class ProductProductCategory
 {
     public long ProductId { get; set; }
     public long CategoryId { get; set; }
 
     // Navigation properties
     public virtual Product? Product { get; set; }
-    public virtual Category? Category { get; set; }
+    public virtual ProductCategory? Category { get; set; }
 
     public static void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<ProductCategory>(entity =>
+        modelBuilder.Entity<ProductProductCategory>(entity =>
         {
-            entity.ToTable("product_category");
+            entity.ToTable("product_product_category");
             entity.HasKey(e => new { e.ProductId, e.CategoryId });
 
             entity.Property(e => e.ProductId).HasColumnName("product_id");

@@ -8,10 +8,12 @@ namespace FlowerShop.API.Data;
 public class AdminSeeder
 {
     private readonly AppDbContext _context;
+    private readonly IConfiguration _config;
 
-    public AdminSeeder(AppDbContext context)
+    public AdminSeeder(AppDbContext context, IConfiguration config)
     {
         _context = context;
+        _config = config;
     }
 
     public async Task SeedAsync()
@@ -93,14 +95,14 @@ public class AdminSeeder
     // 3. Tạo User và gắn vào Role SuperAdmin
     private async Task SeedSuperAdminUserAsync(Role adminRole)
     {
-        string email = Environment.GetEnvironmentVariable("SUPER_ADMIN_EMAIL");
+        string email = _config["SuperAdmin:Email"];
         if (string.IsNullOrEmpty(email) || await _context.Users.AnyAsync(u => u.Email == email)) return;
 
         var user = new User
         {
-            Name = Environment.GetEnvironmentVariable("SUPER_ADMIN_USERNAME") ?? "Super Admin",
+            Name = _config["SuperAdmin:Username"] ?? "Super Admin",
             Email = email,
-            Password = PasswordHelper.HashPassword(Environment.GetEnvironmentVariable("SUPER_ADMIN_PASSWORD")),
+            Password = PasswordHelper.HashPassword(_config["SuperAdmin:Password"]),
             CreatedAt = DateTime.UtcNow,
             Verified = true
         };
