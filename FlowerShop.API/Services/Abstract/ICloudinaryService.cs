@@ -1,8 +1,9 @@
 ﻿namespace FlowerShop.API.Services.Abstract;
-using FlowerShop.API.Models.DTOs.Cloudinary;
+
+using CloudinaryDotNet.Actions;
 
 public interface ICloudinaryService
 {
-    Task<CloudinaryResponse?> UploadImageAsync(IFormFile file, string folderName);
+    Task<ImageUploadResult?> UploadImageAsync(IFormFile file, string folderName);
     Task<bool> DeleteImageAsync(string publicId);
 }

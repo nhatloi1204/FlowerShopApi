@@ -36,6 +36,7 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
         // Call OnModelCreating from each entity - Auth & System
         User.OnModelCreating(modelBuilder);
