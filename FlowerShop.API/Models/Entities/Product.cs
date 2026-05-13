@@ -24,6 +24,7 @@ public class Product
     //public virtual ProductStatus? Status { get; set; }
     public virtual ICollection<ProductCategory> Categories { get; set; } = new List<ProductCategory>();
     public virtual ICollection<ProductTag> ProductTags { get; set; } = new List<ProductTag>();
+    public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
     public static void OnModelCreating(ModelBuilder modelBuilder)
     {

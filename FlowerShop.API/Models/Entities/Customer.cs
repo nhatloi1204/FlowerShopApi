@@ -20,7 +20,7 @@ namespace FlowerShop.API.Models.Entities
         public DateTime? DeletedAt { get; set; }
 
         // Navigation properties
-        // public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+        public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
         public virtual ICollection<CustomerAddress> Addresses { get; set; } = new List<CustomerAddress>();
 
         public static void OnModelCreating(ModelBuilder modelBuilder)
@@ -44,6 +44,11 @@ namespace FlowerShop.API.Models.Entities
                 entity.Property(e => e.EmailVerifiedAt).HasColumnName("email_verified_at").HasColumnType("timestamp with time zone");
                 entity.Property(e => e.VerificationToken).HasColumnName("verification_token").HasColumnType("varchar(255)");
                 entity.Property(e => e.RememberToken).HasColumnName("remember_token").HasColumnType("varchar(255)");
+
+                entity.HasMany(e => e.Orders)
+                  .WithOne(o => o.Customer)
+                  .HasForeignKey(o => o.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasQueryFilter(e => e.DeletedAt == null);
             });
