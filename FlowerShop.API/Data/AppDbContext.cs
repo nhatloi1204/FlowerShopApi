@@ -32,6 +32,11 @@ public class AppDbContext : DbContext
     // DbSet - Media
     public DbSet<Media> Medias { get; set; }
 
+    // DbSet - Orders
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<OrderItem> OrderItems { get; set; }
+    public DbSet<PaymentMethod> PaymentMethods { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -60,5 +65,10 @@ public class AppDbContext : DbContext
 
         // Call OnModelCreating from each entity - Media
         Media.OnModelCreating(modelBuilder);
+
+        // Call OnModelCreating from each entity - Orders
+        Order.OnModelCreating(modelBuilder);
+        OrderItem.OnModelCreating(modelBuilder);
+        PaymentMethod.OnModelCreating(modelBuilder);
     }
 }

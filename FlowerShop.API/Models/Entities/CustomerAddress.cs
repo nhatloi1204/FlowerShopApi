@@ -20,7 +20,7 @@ namespace FlowerShop.API.Models.Entities
         public virtual Customer? Customer { get; set; }
         public virtual Province? Province { get; set; }
         public virtual Ward? Ward { get; set; }
-        // public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+        public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
         public static void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -41,6 +41,7 @@ namespace FlowerShop.API.Models.Entities
                 entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasColumnType("timestamp with time zone");
                 entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamp with time zone");
                 entity.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("timestamp with time zone");
+
                 // Foreign Keys
                 entity.HasOne(e => e.Customer)
                     .WithMany(c => c.Addresses)
@@ -56,6 +57,11 @@ namespace FlowerShop.API.Models.Entities
                     .WithMany()
                     .HasForeignKey(e => e.WardId)
                     .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasMany(e => e.Orders)
+                  .WithOne(o => o.Address)
+                  .HasForeignKey(o => o.ReceiveAddressId)
+                  .OnDelete(DeleteBehavior.SetNull);
 
                 // Global Query Filter - Soft Delete
                 entity.HasQueryFilter(e => e.DeletedAt == null);
