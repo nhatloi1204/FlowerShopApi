@@ -1,7 +1,7 @@
+using AutoMapper;
 using FlowerShop.API.Data;
-using FlowerShop.API.Models.DTOs.Auth;
-using FlowerShop.API.Models.DTOs.ProductCategory;
 using FlowerShop.API.Models.Entities;
+using FlowerShop.API.Models.Views;
 using FlowerShop.API.Services.Abstract;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,65 +11,47 @@ public class ProductCategoryService : IProductCategoryService
 {
     private readonly AppDbContext _context;
     private readonly ISlugService _slugService;
+    private readonly IMapper _mapper;
 
-    public ProductCategoryService(AppDbContext context, ISlugService slugService)
+    public ProductCategoryService(AppDbContext context, ISlugService slugService, IMapper mapper)
     {
         _context = context;
         _slugService = slugService;
+        _mapper = mapper;
     }
 
-    public async Task<AuthResponse<ProductCategoryResponse>> CreateAsync(CreateProductCategoryRequest request)
+    public async Task<BaseResponse<ProductCategoryOutputResource>> CreateAsync(ProductCategoryInputResource request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return new AuthResponse<ProductCategoryResponse>
-            {
-                Success = false,
-                Message = "Category name is required"
-            };
+            return BaseResponse<ProductCategoryOutputResource>.Fail("Category name is required");
         }
 
         var slug = await _slugService.GenerateUniqueSlugAsync(request.Name, _context.Categories);
 
-        var category = new ProductCategory
-        {
-            Name = request.Name,
-            Description = request.Description,
-            Slug = slug,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+        var category = _mapper.Map<ProductCategory>(request);
+        category.Slug = slug;
+        category.CreatedAt = DateTime.UtcNow;
+        category.UpdatedAt = DateTime.UtcNow;
 
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
 
-        return new AuthResponse<ProductCategoryResponse>
-        {
-            Success = true,
-            Message = "Category created successfully",
-            Data = MapToResponse(category)
-        };
+        var response = _mapper.Map<ProductCategoryOutputResource>(category);
+        return BaseResponse<ProductCategoryOutputResource>.Ok(response, "Category created successfully");
     }
 
-    public async Task<AuthResponse<ProductCategoryResponse>> UpdateAsync(long id, UpdateProductCategoryRequest request)
+    public async Task<BaseResponse<ProductCategoryOutputResource>> UpdateAsync(long id, ProductCategoryInputResource request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return new AuthResponse<ProductCategoryResponse>
-            {
-                Success = false,
-                Message = "Category name is required"
-            };
+            return BaseResponse<ProductCategoryOutputResource>.Fail("Category name is required");
         }
 
         var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
         if (category == null)
         {
-            return new AuthResponse<ProductCategoryResponse>
-            {
-                Success = false,
-                Message = "Category not found"
-            };
+            return BaseResponse<ProductCategoryOutputResource>.Fail("Category not found");
         }
 
         if (!string.Equals(category.Name, request.Name, StringComparison.OrdinalIgnoreCase))
@@ -77,31 +59,22 @@ public class ProductCategoryService : IProductCategoryService
             category.Slug = await _slugService.GenerateUniqueSlugAsync(request.Name, _context.Categories);
         }
 
-        category.Name = request.Name;
-        category.Description = request.Description;
+        _mapper.Map(request, category);
         category.UpdatedAt = DateTime.UtcNow;
 
         _context.Categories.Update(category);
         await _context.SaveChangesAsync();
 
-        return new AuthResponse<ProductCategoryResponse>
-        {
-            Success = true,
-            Message = "Category updated successfully",
-            Data = MapToResponse(category)
-        };
+        var response = _mapper.Map<ProductCategoryOutputResource>(category);
+        return BaseResponse<ProductCategoryOutputResource>.Ok(response, "Category updated successfully");
     }
 
-    public async Task<AuthResponse<bool>> DeleteAsync(long id)
+    public async Task<BaseResponse<bool>> DeleteAsync(long id)
     {
         var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
         if (category == null)
         {
-            return new AuthResponse<bool>
-            {
-                Success = false,
-                Message = "Category not found"
-            };
+            return BaseResponse<bool>.Fail("Category not found");
         }
 
         category.DeletedAt = DateTime.UtcNow;
@@ -110,58 +83,28 @@ public class ProductCategoryService : IProductCategoryService
         _context.Categories.Update(category);
         await _context.SaveChangesAsync();
 
-        return new AuthResponse<bool>
-        {
-            Success = true,
-            Message = "Category deleted successfully",
-            Data = true
-        };
+        return BaseResponse<bool>.Ok(true, "Category deleted successfully");
     }
 
-    public async Task<AuthResponse<ProductCategoryResponse>> GetByIdAsync(long id)
+    public async Task<BaseResponse<ProductCategoryOutputResource>> GetByIdAsync(long id)
     {
         var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
         if (category == null)
         {
-            return new AuthResponse<ProductCategoryResponse>
-            {
-                Success = false,
-                Message = "Category not found"
-            };
+            return BaseResponse<ProductCategoryOutputResource>.Fail("Category not found");
         }
 
-        return new AuthResponse<ProductCategoryResponse>
-        {
-            Success = true,
-            Message = "Category retrieved successfully",
-            Data = MapToResponse(category)
-        };
+        var response = _mapper.Map<ProductCategoryOutputResource>(category);
+        return BaseResponse<ProductCategoryOutputResource>.Ok(response, "Category retrieved successfully");
     }
 
-    public async Task<AuthResponse<List<ProductCategoryResponse>>> GetAllAsync()
+    public async Task<BaseResponse<List<ProductCategoryOutputResource>>> GetAllAsync()
     {
         var categories = await _context.Categories
             .OrderBy(c => c.Name)
             .ToListAsync();
 
-        return new AuthResponse<List<ProductCategoryResponse>>
-        {
-            Success = true,
-            Message = "Categories retrieved successfully",
-            Data = categories.Select(MapToResponse).ToList()
-        };
-    }
-
-    private static ProductCategoryResponse MapToResponse(ProductCategory category)
-    {
-        return new ProductCategoryResponse
-        {
-            Id = category.Id,
-            Name = category.Name,
-            Description = category.Description,
-            Slug = category.Slug,
-            CreatedAt = category.CreatedAt,
-            UpdatedAt = category.UpdatedAt
-        };
+        var response = _mapper.Map<List<ProductCategoryOutputResource>>(categories);
+        return BaseResponse<List<ProductCategoryOutputResource>>.Ok(response, "Categories retrieved successfully");
     }
 }

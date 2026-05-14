@@ -1,4 +1,4 @@
-using FlowerShop.API.Models.DTOs.Auth;
+using FlowerShop.API.Models.Views;
 using FlowerShop.API.Services.Abstract;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +16,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponse<LoginResponse>>> Register([FromBody] RegisterRequest request)
+    public async Task<ActionResult<BaseResponse<LoginOutputResource>>> Register([FromBody] RegisterInputResource request)
     {
         var result = await _authService.RegisterAsync(request);
 
@@ -29,7 +29,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponse<LoginResponse>>> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<BaseResponse<LoginOutputResource>>> Login([FromBody] LoginInputResource request)
     {
         var result = await _authService.LoginAsync(request);
 
@@ -42,7 +42,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("external-login")]
-    public async Task<ActionResult<AuthResponse<LoginResponse>>> ExternalLogin([FromBody] ExternalAuthRequest request)
+    public async Task<ActionResult<BaseResponse<LoginOutputResource>>> ExternalLogin([FromBody] ExternalAuthInputResource request)
     {
         var result = await _authService.ExternalLoginAsync(request);
         if (!result.Success) return BadRequest(result);

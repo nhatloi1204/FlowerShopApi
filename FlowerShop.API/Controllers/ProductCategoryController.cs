@@ -1,4 +1,4 @@
-using FlowerShop.API.Models.DTOs.ProductCategory;
+using FlowerShop.API.Models.Views;
 using FlowerShop.API.Services.Abstract;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,7 +40,7 @@ public class ProductCategoryController : ControllerBase
 
     [HttpPost("api/admin/product-categories")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<IActionResult> Create([FromBody] CreateProductCategoryRequest request)
+    public async Task<IActionResult> Create([FromBody] ProductCategoryInputResource request)
     {
         var result = await _categoryService.CreateAsync(request);
         if (!result.Success)
@@ -53,7 +53,7 @@ public class ProductCategoryController : ControllerBase
 
     [HttpPut("api/admin/product-categories/{id}")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<IActionResult> Update(long id, [FromBody] UpdateProductCategoryRequest request)
+    public async Task<IActionResult> Update(long id, [FromBody] ProductCategoryInputResource request)
     {
         var result = await _categoryService.UpdateAsync(id, request);
         if (!result.Success)

@@ -1,8 +1,8 @@
 ﻿using CloudinaryDotNet.Actions;
-using FlowerShop.API.Models.Entities;
+using FlowerShop.API.Models.Views;
 using Microsoft.AspNetCore.Http;
 
 public interface IMediaService
 {
-    Task<Media> SaveMediaAsync(ImageUploadResult uploadResult, IFormFile file, long modelId, string modelType, string collectionName = "gallery");
+    Task<MediaOutputResource> SaveMediaAsync(ImageUploadResult uploadResult, IFormFile file, long modelId, string modelType, string collectionName = "gallery");
 }
