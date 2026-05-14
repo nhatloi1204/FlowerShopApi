@@ -1,7 +1,7 @@
+using AutoMapper;
 using FlowerShop.API.Data;
-using FlowerShop.API.Models.DTOs.Admin.Role;
-using FlowerShop.API.Models.DTOs.Auth;
 using FlowerShop.API.Models.Entities;
+using FlowerShop.API.Models.Views;
 using FlowerShop.API.Services.Abstract;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,21 +10,19 @@ namespace FlowerShop.API.Services.Concrete;
 public class RoleService : IRoleService
 {
     private readonly AppDbContext _context;
+    private readonly IMapper _mapper;
 
-    public RoleService(AppDbContext context)
+    public RoleService(AppDbContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
-    public async Task<AuthResponse<RoleResponse>> CreateRoleAsync(CreateRoleRequest request)
+    public async Task<BaseResponse<RoleOutputResource>> CreateRoleAsync(RoleInputResource request)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
         {
-            return new AuthResponse<RoleResponse>
-            {
-                Success = false,
-                Message = "Role title is required"
-            };
+            return BaseResponse<RoleOutputResource>.Fail("Role title is required");
         }
 
         // Check if role already exists
@@ -33,40 +31,25 @@ public class RoleService : IRoleService
 
         if (existingRole != null)
         {
-            return new AuthResponse<RoleResponse>
-            {
-                Success = false,
-                Message = "Role already exists"
-            };
+            return BaseResponse<RoleOutputResource>.Fail("Role already exists");
         }
 
-        var role = new Role
-        {
-            Title = request.Title,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+        var role = _mapper.Map<Role>(request);
+        role.CreatedAt = DateTime.UtcNow;
+        role.UpdatedAt = DateTime.UtcNow;
 
         _context.Roles.Add(role);
         await _context.SaveChangesAsync();
 
-        return new AuthResponse<RoleResponse>
-        {
-            Success = true,
-            Message = "Role created successfully",
-            Data = MapToRoleResponse(role)
-        };
+        var response = _mapper.Map<RoleOutputResource>(role);
+        return BaseResponse<RoleOutputResource>.Ok(response, "Role created successfully");
     }
 
-    public async Task<AuthResponse<RoleResponse>> UpdateRoleAsync(long roleId, UpdateRoleRequest request)
+    public async Task<BaseResponse<RoleOutputResource>> UpdateRoleAsync(long roleId, RoleInputResource request)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
         {
-            return new AuthResponse<RoleResponse>
-            {
-                Success = false,
-                Message = "Role title is required"
-            };
+            return BaseResponse<RoleOutputResource>.Fail("Role title is required");
         }
 
         var role = await _context.Roles
@@ -75,44 +58,29 @@ public class RoleService : IRoleService
 
         if (role == null)
         {
-            return new AuthResponse<RoleResponse>
-            {
-                Success = false,
-                Message = "Role not found"
-            };
+            return BaseResponse<RoleOutputResource>.Fail("Role not found");
         }
 
-        role.Title = request.Title;
-        role.UpdatedAt = DateTime.UtcNow;
+        _mapper.Map(request, role);
 
         _context.Roles.Update(role);
         await _context.SaveChangesAsync();
 
-        return new AuthResponse<RoleResponse>
-        {
-            Success = true,
-            Message = "Role updated successfully",
-            Data = MapToRoleResponse(role)
-        };
+        var response = _mapper.Map<RoleOutputResource>(role);
+        return BaseResponse<RoleOutputResource>.Ok(response, "Role updated successfully");
     }
 
-    public async Task<AuthResponse<List<RoleResponse>>> GetAllRolesAsync()
+    public async Task<BaseResponse<List<RoleOutputResource>>> GetAllRolesAsync()
     {
         var roles = await _context.Roles
             .Include(r => r.Permissions)
             .ToListAsync();
 
-        var roleResponses = roles.Select(MapToRoleResponse).ToList();
-
-        return new AuthResponse<List<RoleResponse>>
-        {
-            Success = true,
-            Message = "Roles retrieved successfully",
-            Data = roleResponses
-        };
+        var response = _mapper.Map<List<RoleOutputResource>>(roles);
+        return BaseResponse<List<RoleOutputResource>>.Ok(response, "Roles retrieved successfully");
     }
 
-    public async Task<AuthResponse<RoleResponse>> GetRoleByIdAsync(long roleId)
+    public async Task<BaseResponse<RoleOutputResource>> GetRoleByIdAsync(long roleId)
     {
         var role = await _context.Roles
             .Include(r => r.Permissions)
@@ -120,32 +88,20 @@ public class RoleService : IRoleService
 
         if (role == null)
         {
-            return new AuthResponse<RoleResponse>
-            {
-                Success = false,
-                Message = "Role not found"
-            };
+            return BaseResponse<RoleOutputResource>.Fail("Role not found");
         }
 
-        return new AuthResponse<RoleResponse>
-        {
-            Success = true,
-            Message = "Role retrieved successfully",
-            Data = MapToRoleResponse(role)
-        };
+        var response = _mapper.Map<RoleOutputResource>(role);
+        return BaseResponse<RoleOutputResource>.Ok(response, "Role retrieved successfully");
     }
 
-    public async Task<AuthResponse<bool>> DeleteRoleAsync(long roleId)
+    public async Task<BaseResponse<bool>> DeleteRoleAsync(long roleId)
     {
         var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == roleId);
 
         if (role == null)
         {
-            return new AuthResponse<bool>
-            {
-                Success = false,
-                Message = "Role not found"
-            };
+            return BaseResponse<bool>.Fail("Role not found");
         }
 
         // Check if any users have this role
@@ -155,25 +111,16 @@ public class RoleService : IRoleService
 
         if (usersWithRole > 0)
         {
-            return new AuthResponse<bool>
-            {
-                Success = false,
-                Message = $"Cannot delete role. {usersWithRole} user(s) have this role."
-            };
+            return BaseResponse<bool>.Fail($"Cannot delete role. {usersWithRole} user(s) have this role.");
         }
 
         _context.Roles.Remove(role);
         await _context.SaveChangesAsync();
 
-        return new AuthResponse<bool>
-        {
-            Success = true,
-            Message = "Role deleted successfully",
-            Data = true
-        };
+        return BaseResponse<bool>.Ok(true, "Role deleted successfully");
     }
 
-    public async Task<AuthResponse<bool>> AssignPermissionsAsync(long roleId, AssignPermissionsRequest request)
+    public async Task<BaseResponse<bool>> AssignPermissionsAsync(long roleId, AssignPermissionsInputResource request)
     {
         var role = await _context.Roles
             .Include(r => r.Permissions)
@@ -181,11 +128,7 @@ public class RoleService : IRoleService
 
         if (role == null)
         {
-            return new AuthResponse<bool>
-            {
-                Success = false,
-                Message = "Role not found"
-            };
+            return BaseResponse<bool>.Fail("Role not found");
         }
 
         // Get all permissions to assign
@@ -195,11 +138,7 @@ public class RoleService : IRoleService
 
         if (permissionsToAdd.Count != request.PermissionIds.Count)
         {
-            return new AuthResponse<bool>
-            {
-                Success = false,
-                Message = "Some permissions not found"
-            };
+            return BaseResponse<bool>.Fail("Some permissions not found");
         }
 
         // Remove existing permissions
@@ -221,29 +160,6 @@ public class RoleService : IRoleService
 
         await _context.SaveChangesAsync();
 
-        return new AuthResponse<bool>
-        {
-            Success = true,
-            Message = "Permissions assigned to role successfully",
-            Data = true
-        };
-    }
-
-    private RoleResponse MapToRoleResponse(Role role)
-    {
-        return new RoleResponse
-        {
-            Id = role.Id,
-            Title = role.Title,
-            CreatedAt = role.CreatedAt,
-            Permissions = role.Permissions?
-                .Select(p => new PermissionResponse
-                {
-                    Id = p.Id,
-                    Title = p.Title,
-                    Description = p.Description
-                })
-                .ToList() ?? new List<PermissionResponse>()
-        };
+        return BaseResponse<bool>.Ok(true, "Permissions assigned successfully");
     }
 }

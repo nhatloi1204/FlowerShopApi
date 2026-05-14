@@ -1,20 +1,19 @@
-using FlowerShop.API.Models.DTOs.Admin.Role;
-using FlowerShop.API.Models.DTOs.Auth;
+using FlowerShop.API.Models.Views;
 
 namespace FlowerShop.API.Services.Abstract;
 
 public interface IAdminService
 {
     // Role Management
-    Task<AuthResponse<RoleResponse>> CreateRoleAsync(CreateRoleRequest request);
-    Task<AuthResponse<RoleResponse>> UpdateRoleAsync(long roleId, UpdateRoleRequest request);
-    Task<AuthResponse<List<RoleResponse>>> GetAllRolesAsync();
-    Task<AuthResponse<RoleResponse>> GetRoleByIdAsync(long roleId);
-    Task<AuthResponse<string>> DeleteRoleAsync(long roleId);
+    Task<BaseResponse<RoleOutputResource>> CreateRoleAsync(RoleInputResource request);
+    Task<BaseResponse<RoleOutputResource>> UpdateRoleAsync(long roleId, RoleInputResource request);
+    Task<BaseResponse<List<RoleOutputResource>>> GetAllRolesAsync();
+    Task<BaseResponse<RoleOutputResource>> GetRoleByIdAsync(long roleId);
+    Task<BaseResponse<bool>> DeleteRoleAsync(long roleId);
 
     // Permission Management for Role
-    Task<AuthResponse<RoleResponse>> AssignPermissionsToRoleAsync(long roleId, AssignPermissionsRequest request);
-    Task<AuthResponse<List<PermissionResponse>>> GetAllPermissionsAsync();
-    Task<AuthResponse<List<PermissionResponse>>> GetRolePermissionsAsync(long roleId);
-    Task<AuthResponse<string>> RemovePermissionFromRoleAsync(long roleId, long permissionId);
+    Task<BaseResponse<RoleOutputResource>> AssignPermissionsToRoleAsync(long roleId, AssignPermissionsInputResource request);
+    Task<BaseResponse<List<PermissionOutputResource>>> GetAllPermissionsAsync();
+    Task<BaseResponse<List<PermissionOutputResource>>> GetRolePermissionsAsync(long roleId);
+    Task<BaseResponse<bool>> RemovePermissionFromRoleAsync(long roleId, long permissionId);
 }

@@ -1,14 +1,13 @@
-using FlowerShop.API.Models.DTOs.Auth;
-using FlowerShop.API.Models.DTOs.Product;
+using FlowerShop.API.Models.Views;
 
 namespace FlowerShop.API.Services.Abstract;
 
 public interface IProductService
 {
-    Task<AuthResponse<ProductResponse>> CreateAsync(CreateProductRequest request);
-    Task<AuthResponse<ProductResponse>> UpdateAsync(long id, UpdateProductRequest request);
-    Task<AuthResponse<bool>> DeleteAsync(long id);
-    Task<AuthResponse<ProductResponse>> GetByIdAsync(long id);
-    Task<AuthResponse<ProductResponse>> GetBySlugAsync(string slug);
-    Task<AuthResponse<List<ProductResponse>>> GetAllAsync();
+    Task<BaseResponse<ProductOutputResource>> CreateAsync(ProductInputResource request);
+    Task<BaseResponse<ProductOutputResource>> UpdateAsync(long id, ProductInputResource request);
+    Task<BaseResponse<bool>> DeleteAsync(long id);
+    Task<BaseResponse<ProductOutputResource>> GetByIdAsync(long id);
+    Task<BaseResponse<ProductOutputResource>> GetBySlugAsync(string slug);
+    Task<BaseResponse<List<ProductOutputResource>>> GetAllAsync();
 }

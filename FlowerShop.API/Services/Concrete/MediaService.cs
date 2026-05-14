@@ -1,20 +1,24 @@
 ﻿using System.Text.Json;
+using AutoMapper;
 using CloudinaryDotNet.Actions;
 using FlowerShop.API.Data;
 using FlowerShop.API.Models.Entities;
+using FlowerShop.API.Models.Views;
 
 namespace FlowerShop.API.Services.Concrete
 {
     public class MediaService : IMediaService
     {
         private readonly AppDbContext _context;
+        private readonly IMapper _mapper;
 
-        public MediaService(AppDbContext context)
+        public MediaService(AppDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
-        public async Task<Media> SaveMediaAsync(
+        public async Task<MediaOutputResource> SaveMediaAsync(
             ImageUploadResult uploadResult,
             IFormFile file,
             long modelId,
@@ -54,7 +58,7 @@ namespace FlowerShop.API.Services.Concrete
             _context.Medias.Add(media);
             await _context.SaveChangesAsync();
 
-            return media;
+            return _mapper.Map<MediaOutputResource>(media);
         }
     }
 }

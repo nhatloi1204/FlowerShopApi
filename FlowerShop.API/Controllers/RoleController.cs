@@ -1,4 +1,4 @@
-using FlowerShop.API.Models.DTOs.Admin.Role;
+using FlowerShop.API.Models.Views;
 using FlowerShop.API.Services.Abstract;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -46,7 +46,7 @@ public class RoleController : ControllerBase
     /// </summary>
     [HttpPost]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
+    public async Task<IActionResult> CreateRole([FromBody] RoleInputResource request)
     {
         var result = await _roleService.CreateRoleAsync(request);
         if (!result.Success)
@@ -59,7 +59,7 @@ public class RoleController : ControllerBase
     /// </summary>
     [HttpPut("{roleId}")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<IActionResult> UpdateRole(long roleId, [FromBody] UpdateRoleRequest request)
+    public async Task<IActionResult> UpdateRole(long roleId, [FromBody] RoleInputResource request)
     {
         var result = await _roleService.UpdateRoleAsync(roleId, request);
         if (!result.Success)
@@ -85,7 +85,7 @@ public class RoleController : ControllerBase
     /// </summary>
     [HttpPost("{roleId}/permissions")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<IActionResult> AssignPermissions(long roleId, [FromBody] AssignPermissionsRequest request)
+    public async Task<IActionResult> AssignPermissions(long roleId, [FromBody] AssignPermissionsInputResource request)
     {
         var result = await _roleService.AssignPermissionsAsync(roleId, request);
         if (!result.Success)

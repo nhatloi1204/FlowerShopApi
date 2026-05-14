@@ -1,4 +1,4 @@
-using FlowerShop.API.Models.DTOs.Product;
+using FlowerShop.API.Models.Views;
 using FlowerShop.API.Services.Abstract;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -42,7 +42,7 @@ public class ProductController : ControllerBase
     [HttpPost("/api/admin/products")]
     [Authorize(Roles = "SuperAdmin")]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> Create([FromForm] CreateProductRequest request)
+    public async Task<IActionResult> Create([FromForm] ProductInputResource request)
     {
         var result = await _productService.CreateAsync(request);
         if (!result.Success)
@@ -56,7 +56,7 @@ public class ProductController : ControllerBase
     [HttpPut("/api/admin/products/{id}")]
     [Authorize(Roles = "SuperAdmin")]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> Update(long id, [FromForm] UpdateProductRequest request)
+    public async Task<IActionResult> Update(long id, [FromForm] ProductInputResource request)
     {
         var result = await _productService.UpdateAsync(id, request);
         if (!result.Success)

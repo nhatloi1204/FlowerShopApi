@@ -66,6 +66,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddAutoMapper(typeof(FlowerShop.API.Models.Views.MappingProfile).Assembly);
 builder.Services.AddScoped<ISlugService, SlugService>();
 builder.Services.AddScoped<AdminSeeder>();
 builder.Services.AddScoped<GeoSeeder>();

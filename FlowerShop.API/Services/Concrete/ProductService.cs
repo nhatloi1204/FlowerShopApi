@@ -1,9 +1,9 @@
 using System.Text.Json;
+using AutoMapper;
 using FlowerShop.API.Data;
-using FlowerShop.API.Models.DTOs.Auth;
-using FlowerShop.API.Models.DTOs.Product;
 using FlowerShop.API.Models.Entities;
 using FlowerShop.API.Models.Enums;
+using FlowerShop.API.Models.Views;
 using FlowerShop.API.Services.Abstract;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,28 +18,27 @@ public class ProductService : IProductService
     private readonly ISlugService _slugService;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IMediaService _mediaService;
+    private readonly IMapper _mapper;
 
     public ProductService(
         AppDbContext context,
         ISlugService slugService,
         ICloudinaryService cloudinaryService,
-        IMediaService mediaService)
+        IMediaService mediaService,
+        IMapper mapper)
     {
         _context = context;
         _slugService = slugService;
         _cloudinaryService = cloudinaryService;
         _mediaService = mediaService;
+        _mapper = mapper;
     }
 
-    public async Task<AuthResponse<ProductResponse>> CreateAsync(CreateProductRequest request)
+    public async Task<BaseResponse<ProductOutputResource>> CreateAsync(ProductInputResource request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return new AuthResponse<ProductResponse>
-            {
-                Success = false,
-                Message = "Product name is required"
-            };
+            return BaseResponse<ProductOutputResource>.Fail("Product name is required");
         }
 
         var slug = await _slugService.GenerateUniqueSlugAsync(request.Name, _context.Products);
@@ -48,20 +47,11 @@ public class ProductService : IProductService
 
         try
         {
-            var product = new Product
-            {
-                Name = request.Name,
-                Slug = slug,
-                PriceMin = request.PriceMin,
-                PriceMax = request.PriceMax,
-                Price = request.Price,
-                StockQuantity = request.StockQuantity,
-                Description = request.Description,
-                Status = request.Status ?? ProductStatus.Available,
-                CompanyId = request.CompanyId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            var product = _mapper.Map<Product>(request);
+            product.Slug = slug;
+            product.Status = request.Status ?? ProductStatus.Available;
+            product.CreatedAt = DateTime.UtcNow;
+            product.UpdatedAt = DateTime.UtcNow;
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
@@ -111,14 +101,9 @@ public class ProductService : IProductService
 
             await transaction.CommitAsync();
 
-            var response = await MapToResponseAsync(product);
+            var response = await BuildOutputAsync(product);
 
-            return new AuthResponse<ProductResponse>
-            {
-                Success = true,
-                Message = "Product created successfully",
-                Data = response
-            };
+            return BaseResponse<ProductOutputResource>.Ok(response, "Product created successfully");
         }
         catch
         {
@@ -127,25 +112,17 @@ public class ProductService : IProductService
         }
     }
 
-    public async Task<AuthResponse<ProductResponse>> UpdateAsync(long id, UpdateProductRequest request)
+    public async Task<BaseResponse<ProductOutputResource>> UpdateAsync(long id, ProductInputResource request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return new AuthResponse<ProductResponse>
-            {
-                Success = false,
-                Message = "Product name is required"
-            };
+            return BaseResponse<ProductOutputResource>.Fail("Product name is required");
         }
 
         var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
         if (product == null)
         {
-            return new AuthResponse<ProductResponse>
-            {
-                Success = false,
-                Message = "Product not found"
-            };
+            return BaseResponse<ProductOutputResource>.Fail("Product not found");
         }
 
         if (!string.Equals(product.Name, request.Name, StringComparison.OrdinalIgnoreCase))
@@ -153,17 +130,11 @@ public class ProductService : IProductService
             product.Slug = await _slugService.GenerateUniqueSlugAsync(request.Name, _context.Products);
         }
 
-        product.Name = request.Name;
-        product.PriceMin = request.PriceMin;
-        product.PriceMax = request.PriceMax;
-        product.Price = request.Price;
-        product.StockQuantity = request.StockQuantity;
-        product.Description = request.Description;
+        _mapper.Map(request, product);
         if (request.Status.HasValue)
         {
             product.Status = request.Status.Value;
         }
-        product.CompanyId = request.CompanyId;
         product.UpdatedAt = DateTime.UtcNow;
 
         _context.Products.Update(product);
@@ -185,26 +156,17 @@ public class ProductService : IProductService
             await ReplaceProductImagesAsync(product.Id, request.Images);
         }
 
-        var response = await MapToResponseAsync(product);
+        var response = await BuildOutputAsync(product);
 
-        return new AuthResponse<ProductResponse>
-        {
-            Success = true,
-            Message = "Product updated successfully",
-            Data = response
-        };
+        return BaseResponse<ProductOutputResource>.Ok(response, "Product updated successfully");
     }
 
-    public async Task<AuthResponse<bool>> DeleteAsync(long id)
+    public async Task<BaseResponse<bool>> DeleteAsync(long id)
     {
         var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
         if (product == null)
         {
-            return new AuthResponse<bool>
-            {
-                Success = false,
-                Message = "Product not found"
-            };
+            return BaseResponse<bool>.Fail("Product not found");
         }
 
         product.DeletedAt = DateTime.UtcNow;
@@ -213,72 +175,44 @@ public class ProductService : IProductService
         _context.Products.Update(product);
         await _context.SaveChangesAsync();
 
-        return new AuthResponse<bool>
-        {
-            Success = true,
-            Message = "Product deleted successfully",
-            Data = true
-        };
+        return BaseResponse<bool>.Ok(true, "Product deleted successfully");
     }
 
-    public async Task<AuthResponse<ProductResponse>> GetByIdAsync(long id)
+    public async Task<BaseResponse<ProductOutputResource>> GetByIdAsync(long id)
     {
         var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
         if (product == null)
         {
-            return new AuthResponse<ProductResponse>
-            {
-                Success = false,
-                Message = "Product not found"
-            };
+            return BaseResponse<ProductOutputResource>.Fail("Product not found");
         }
 
-        var response = await MapToResponseAsync(product);
+        var response = await BuildOutputAsync(product);
 
-        return new AuthResponse<ProductResponse>
-        {
-            Success = true,
-            Message = "Product retrieved successfully",
-            Data = response
-        };
+        return BaseResponse<ProductOutputResource>.Ok(response, "Product retrieved successfully");
     }
 
-    public async Task<AuthResponse<ProductResponse>> GetBySlugAsync(string slug)
+    public async Task<BaseResponse<ProductOutputResource>> GetBySlugAsync(string slug)
     {
         var product = await _context.Products.FirstOrDefaultAsync(p => p.Slug == slug);
         if (product == null)
         {
-            return new AuthResponse<ProductResponse>
-            {
-                Success = false,
-                Message = "Product not found"
-            };
+            return BaseResponse<ProductOutputResource>.Fail("Product not found");
         }
 
-        var response = await MapToResponseAsync(product);
+        var response = await BuildOutputAsync(product);
 
-        return new AuthResponse<ProductResponse>
-        {
-            Success = true,
-            Message = "Product retrieved successfully",
-            Data = response
-        };
+        return BaseResponse<ProductOutputResource>.Ok(response, "Product retrieved successfully");
     }
 
-    public async Task<AuthResponse<List<ProductResponse>>> GetAllAsync()
+    public async Task<BaseResponse<List<ProductOutputResource>>> GetAllAsync()
     {
         var products = await _context.Products
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
 
-        var responses = await MapToResponsesAsync(products);
+        var responses = await BuildOutputsAsync(products);
 
-        return new AuthResponse<List<ProductResponse>>
-        {
-            Success = true,
-            Message = "Products retrieved successfully",
-            Data = responses
-        };
+        return BaseResponse<List<ProductOutputResource>>.Ok(responses, "Products retrieved successfully");
     }
 
     private async Task UploadProductImagesAsync(long productId, List<IFormFile> images)
@@ -377,7 +311,7 @@ public class ProductService : IProductService
         }
     }
 
-    private async Task<ProductResponse> MapToResponseAsync(Product product)
+    private async Task<ProductOutputResource> BuildOutputAsync(Product product)
     {
         var mediaUrls = await _context.Medias
             .Where(m => m.ModelType == ProductModelType && m.ModelId == product.Id)
@@ -385,25 +319,13 @@ public class ProductService : IProductService
             .Select(m => m.FileName)
             .ToListAsync();
 
-        return new ProductResponse
-        {
-            Id = product.Id,
-            Name = product.Name,
-            Slug = product.Slug,
-            PriceMin = product.PriceMin,
-            PriceMax = product.PriceMax,
-            Price = product.Price,
-            StockQuantity = product.StockQuantity,
-            Description = product.Description,
-            Status = product.Status,
-            CompanyId = product.CompanyId,
-            ImageUrls = mediaUrls,
-            CreatedAt = product.CreatedAt,
-            UpdatedAt = product.UpdatedAt
-        };
+        var response = _mapper.Map<ProductOutputResource>(product);
+        response.ImageUrls = mediaUrls;
+
+        return response;
     }
 
-    private async Task<List<ProductResponse>> MapToResponsesAsync(List<Product> products)
+    private async Task<List<ProductOutputResource>> BuildOutputsAsync(List<Product> products)
     {
         var productIds = products.Select(p => p.Id).ToList();
         var mediaLookup = await _context.Medias
@@ -415,22 +337,15 @@ public class ProductService : IProductService
             .GroupBy(m => m.ModelId)
             .ToDictionary(g => g.Key, g => g.Select(m => m.FileName).ToList());
 
-        return products.Select(product => new ProductResponse
+        var responses = _mapper.Map<List<ProductOutputResource>>(products);
+        foreach (var response in responses)
         {
-            Id = product.Id,
-            Name = product.Name,
-            Slug = product.Slug,
-            PriceMin = product.PriceMin,
-            PriceMax = product.PriceMax,
-            Price = product.Price,
-            StockQuantity = product.StockQuantity,
-            Description = product.Description,
-            Status = product.Status,
-            CompanyId = product.CompanyId,
-            ImageUrls = mediaByProduct.TryGetValue(product.Id, out var urls) ? urls : new List<string>(),
-            CreatedAt = product.CreatedAt,
-            UpdatedAt = product.UpdatedAt
-        }).ToList();
+            response.ImageUrls = mediaByProduct.TryGetValue(response.Id, out var urls)
+                ? urls
+                : new List<string>();
+        }
+
+        return responses;
     }
 
     private static string? ExtractPublicId(string customProperties)
