@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AutoMapper;
 using FlowerShop.API.Data;
 using FlowerShop.API.Models.Entities;
@@ -6,6 +5,8 @@ using FlowerShop.API.Models.Enums;
 using FlowerShop.API.Models.Views;
 using FlowerShop.API.Services.Abstract;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
+using System.Text.Json;
 
 namespace FlowerShop.API.Services.Concrete;
 
@@ -202,6 +203,62 @@ public class ProductService : IProductService
         var response = await BuildOutputAsync(product);
 
         return BaseResponse<ProductOutputResource>.Ok(response, "Product retrieved successfully");
+    }
+    public async Task<BaseResponse<PagedList<ProductOutputResource>>> GetProductsAsync(ProductQueryResource query)
+    {
+        var queryable = _context.Products
+            .Where(p => p.DeletedAt == null) 
+            .AsQueryable();
+
+        // Filter by Status
+        if (query.Status.HasValue)
+            queryable = queryable.Where(p => p.Status == query.Status);
+
+        // 3. Filter by name or slug
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var decodedSearch = WebUtility.UrlDecode(query.Search).Trim();
+            queryable = queryable.Where(p =>
+                p.Name!.ToLower().Contains(decodedSearch.ToLower()) ||
+                p.Slug.Contains(decodedSearch.ToLower()));
+        }
+
+        // 4. Filter by Category (use pivot table N-N)
+        if (query.CategoryId.HasValue)
+            queryable = queryable.Where(p => p.Categories.Any(pc => pc.Id == query.CategoryId));
+
+        // 5. Filter by Tag
+        if (query.TagId.HasValue)
+            queryable = queryable.Where(p => p.ProductTags.Any(pt => pt.Id == query.TagId));
+
+        // 6. Filter by price (Using PriceMin/Max)
+        //if (query.MinPrice.HasValue)
+        //    queryable = queryable.Where(p => p.PriceMin >= query.MinPrice);
+        //if (query.MaxPrice.HasValue)
+        //    queryable = queryable.Where(p => p.PriceMax <= query.MaxPrice);
+
+        // Count total items
+        var totalItems = await queryable.CountAsync();
+
+        // Pagiante 
+        var products = await queryable
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync();
+
+        // 
+        var resourceItems = await BuildOutputsAsync(products);
+
+        var result = new PagedList<ProductOutputResource>
+        {
+            Items = resourceItems,
+            TotalItems = totalItems,
+            CurrentPage = query.Page,
+            TotalPages = (int)Math.Ceiling(totalItems / (double)query.PageSize)
+        };
+
+        return BaseResponse<PagedList<ProductOutputResource>>.Ok(result, "Products retrieved");
     }
 
     public async Task<BaseResponse<List<ProductOutputResource>>> GetAllAsync()

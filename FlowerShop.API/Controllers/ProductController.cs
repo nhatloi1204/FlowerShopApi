@@ -19,9 +19,9 @@ public class ProductController : ControllerBase
     // ----------- PUBLIC ROUTE -----------
 
     [HttpGet("/api/products")]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] ProductQueryResource query)
     {
-        var result = await _productService.GetAllAsync();
+        var result = await _productService.GetProductsAsync(query);
         return Ok(result);
     }
 
@@ -34,6 +34,14 @@ public class ProductController : ControllerBase
             return NotFound(result);
         }
 
+        return Ok(result);
+    }
+
+    [HttpGet("/api/products/slug/{slug}")]
+    public async Task<IActionResult> GetBySlug(string slug)
+    {
+        var result = await _productService.GetBySlugAsync(slug);
+        if (!result.Success) return NotFound(result);
         return Ok(result);
     }
 
