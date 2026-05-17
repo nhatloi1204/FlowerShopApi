@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using FlowerShop.API.Models.Entities;
-using Google.Apis.Auth;
 
 namespace FlowerShop.API.Models.Views;
 
@@ -39,13 +38,13 @@ public class MappingProfile : Profile
         CreateMap<Media, MediaOutputResource>();
         #endregion
 
-        #region GooglePayload
-        CreateMap<GoogleJsonWebSignature.Payload, Customer>()
-            .ForMember(dest => dest.ProviderAccountId, opt => opt.MapFrom(src => src.Subject))
+        #region GoogleUserInfo
+        CreateMap<GoogleUserInfoResource, Customer>()
+            .ForMember(dest => dest.ProviderAccountId, opt => opt.MapFrom(src => src.Sub))
             .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.Picture))
             .ForMember(dest => dest.Provider, opt => opt.MapFrom(_ => "GOOGLE"))
             .ForMember(dest => dest.EmailVerifiedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
-            .AfterMap((src, dest) =>
+            .AfterMap((_, dest) =>
             {
                 dest.CreatedAt = dest.CreatedAt == default ? DateTime.UtcNow : dest.CreatedAt;
                 dest.UpdatedAt = DateTime.UtcNow;

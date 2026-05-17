@@ -17,7 +17,7 @@ public class LoginInputResource
 public class ExternalAuthInputResource
 {
     public string Provider { get; set; } = string.Empty;
-    public string IdToken { get; set; } = string.Empty;
+    public string AccessToken { get; set; } = string.Empty;
 }
 
 public class LoginOutputResource
@@ -27,4 +27,12 @@ public class LoginOutputResource
     public string? Name { get; set; }
     public string Token { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
+}
+
+public class GoogleUserInfoResource
+{
+    public string? Sub { get; set; }
+    public string? Email { get; set; }
+    public string? Name { get; set; }
+    public string? Picture { get; set; }
 }
