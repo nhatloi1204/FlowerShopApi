@@ -1,10 +1,11 @@
-﻿using FlowerShop.API.Data;
+﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using AutoMapper;
+using FlowerShop.API.Data;
 using FlowerShop.API.Helpers;
 using FlowerShop.API.Models.Entities;
 using FlowerShop.API.Models.Views;
 using FlowerShop.API.Services.Abstract;
-using Google.Apis.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlowerShop.API.Services.Concrete;
@@ -15,13 +16,20 @@ public class AuthService : IAuthService
     private readonly JwtTokenHelper _jwtHelper;
     private readonly IMapper _mapper;
     private readonly IConfiguration configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public AuthService(AppDbContext context, JwtTokenHelper jwtHelper, IMapper mapper, IConfiguration configuration)
+    public AuthService(
+        AppDbContext context,
+        JwtTokenHelper jwtHelper,
+        IMapper mapper,
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory)
     {
         _context = context;
         _jwtHelper = jwtHelper;
         _mapper = mapper;
         this.configuration = configuration;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<BaseResponse<LoginOutputResource>> RegisterAsync(RegisterInputResource request)
@@ -91,18 +99,31 @@ public class AuthService : IAuthService
         {
             try
             {
-                var settings = new GoogleJsonWebSignature.ValidationSettings()
+                if (string.IsNullOrWhiteSpace(request.AccessToken))
                 {
+                    return BaseResponse<LoginOutputResource>.Fail("Access token is required");
+                }
 
-                    Audience = new List<string> { configuration["Google:ClientId"] }
-                };
+                var httpClient = _httpClientFactory.CreateClient();
+                var userInfoRequest = new HttpRequestMessage(HttpMethod.Get, "https://www.googleapis.com/oauth2/v3/userinfo");
+                userInfoRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", request.AccessToken);
 
-                var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
+                var userInfoResponse = await httpClient.SendAsync(userInfoRequest);
+                if (!userInfoResponse.IsSuccessStatusCode)
+                {
+                    return BaseResponse<LoginOutputResource>.Fail("Invalid External Token");
+                }
+
+                var payload = await userInfoResponse.Content.ReadFromJsonAsync<GoogleUserInfoResource>();
+                if (payload == null || string.IsNullOrWhiteSpace(payload.Email))
+                {
+                    return BaseResponse<LoginOutputResource>.Fail("Invalid External Token");
+                }
 
                 var customer = await _context.Customers
                     .IgnoreQueryFilters()
                     .FirstOrDefaultAsync(c => c.Email == payload.Email ||
-                                             (c.Provider == "GOOGLE" && c.ProviderAccountId == payload.Subject));
+                                             (c.Provider == "GOOGLE" && c.ProviderAccountId == payload.Sub));
 
                 if (customer == null)
                 {

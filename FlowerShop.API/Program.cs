@@ -21,6 +21,19 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+// Configure CORS to allow requests from the frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowNextJS", policy =>
+    {
+        var frontendUrl = builder.Configuration["FRONTEND_URL"] ?? "http://localhost:3000";
+        policy.WithOrigins(frontendUrl)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 // Register DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -52,6 +65,8 @@ builder.Services.AddAuthentication(options =>
 
 // Register Authorization
 builder.Services.AddAuthorization();
+
+builder.Services.AddHttpClient();
 
 // Register JwtTokenHelper
 builder.Services.AddScoped(sp => new JwtTokenHelper(
@@ -127,7 +142,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseCors("AllowNextJS");
 app.UseAuthentication();
 app.UseAuthorization();
 
