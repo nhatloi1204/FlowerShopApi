@@ -9,6 +9,5 @@ public interface IProductService
     Task<BaseResponse<bool>> DeleteAsync(long id);
     Task<BaseResponse<ProductOutputResource>> GetByIdAsync(long id);
     Task<BaseResponse<ProductOutputResource>> GetBySlugAsync(string slug);
-    Task<BaseResponse<List<ProductOutputResource>>> GetAllAsync();
     Task<BaseResponse<PagedList<ProductOutputResource>>> GetProductsAsync(ProductQueryResource query);
 }

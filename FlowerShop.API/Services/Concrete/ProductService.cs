@@ -34,6 +34,66 @@ public class ProductService : IProductService
         _mediaService = mediaService;
         _mapper = mapper;
     }
+    public async Task<BaseResponse<PagedList<ProductOutputResource>>> GetProductsAsync(ProductQueryResource query)
+    {
+        var queryable = _context.Products.AsNoTracking();
+
+        queryable = ApplyFilters(queryable, query);
+
+        var totalItems = await queryable.CountAsync();
+
+        int page = query.Page > 0 ? query.Page : 1;
+        int pageSize = query.PageSize > 0 ? query.PageSize : 12;
+
+        // Paginate 
+        var products = await queryable
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var resourceItems = await BuildOutputsAsync(products);
+
+        var result = new PagedList<ProductOutputResource>
+        {
+            Items = resourceItems,
+            TotalItems = totalItems,
+            CurrentPage = query.Page,
+            TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+        };
+
+        return BaseResponse<PagedList<ProductOutputResource>>.Ok(result, "Products retrieved");
+    }
+
+    public async Task<BaseResponse<ProductOutputResource>> GetByIdAsync(long id)
+    {
+        var product = await _context.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id);
+        if (product == null)
+        {
+            return BaseResponse<ProductOutputResource>.Fail("Product not found");
+        }
+
+        var response = await BuildOutputAsync(product);
+
+        return BaseResponse<ProductOutputResource>.Ok(response, "Product retrieved successfully");
+    }
+
+    public async Task<BaseResponse<ProductOutputResource>> GetBySlugAsync(string slug)
+    {
+        var product = await _context.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Slug == slug);
+        if (product == null)
+        {
+            return BaseResponse<ProductOutputResource>.Fail("Product not found");
+        }
+
+        var response = await BuildOutputAsync(product);
+
+        return BaseResponse<ProductOutputResource>.Ok(response, "Product retrieved successfully");
+    }
 
     public async Task<BaseResponse<ProductOutputResource>> CreateAsync(ProductInputResource request)
     {
@@ -179,98 +239,8 @@ public class ProductService : IProductService
         return BaseResponse<bool>.Ok(true, "Product deleted successfully");
     }
 
-    public async Task<BaseResponse<ProductOutputResource>> GetByIdAsync(long id)
-    {
-        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
-        if (product == null)
-        {
-            return BaseResponse<ProductOutputResource>.Fail("Product not found");
-        }
 
-        var response = await BuildOutputAsync(product);
-
-        return BaseResponse<ProductOutputResource>.Ok(response, "Product retrieved successfully");
-    }
-
-    public async Task<BaseResponse<ProductOutputResource>> GetBySlugAsync(string slug)
-    {
-        var product = await _context.Products.FirstOrDefaultAsync(p => p.Slug == slug);
-        if (product == null)
-        {
-            return BaseResponse<ProductOutputResource>.Fail("Product not found");
-        }
-
-        var response = await BuildOutputAsync(product);
-
-        return BaseResponse<ProductOutputResource>.Ok(response, "Product retrieved successfully");
-    }
-    public async Task<BaseResponse<PagedList<ProductOutputResource>>> GetProductsAsync(ProductQueryResource query)
-    {
-        var queryable = _context.Products
-            .Where(p => p.DeletedAt == null) 
-            .AsQueryable();
-
-        // Filter by Status
-        if (query.Status.HasValue)
-            queryable = queryable.Where(p => p.Status == query.Status);
-
-        // 3. Filter by name or slug
-        if (!string.IsNullOrWhiteSpace(query.Search))
-        {
-            var decodedSearch = WebUtility.UrlDecode(query.Search).Trim();
-            queryable = queryable.Where(p =>
-                p.Name!.ToLower().Contains(decodedSearch.ToLower()) ||
-                p.Slug.Contains(decodedSearch.ToLower()));
-        }
-
-        // 4. Filter by Category (use pivot table N-N)
-        if (query.CategoryId.HasValue)
-            queryable = queryable.Where(p => p.Categories.Any(pc => pc.Id == query.CategoryId));
-
-        // 5. Filter by Tag
-        if (query.TagId.HasValue)
-            queryable = queryable.Where(p => p.ProductTags.Any(pt => pt.Id == query.TagId));
-
-        // 6. Filter by price (Using PriceMin/Max)
-        //if (query.MinPrice.HasValue)
-        //    queryable = queryable.Where(p => p.PriceMin >= query.MinPrice);
-        //if (query.MaxPrice.HasValue)
-        //    queryable = queryable.Where(p => p.PriceMax <= query.MaxPrice);
-
-        // Count total items
-        var totalItems = await queryable.CountAsync();
-
-        // Pagiante 
-        var products = await queryable
-            .OrderByDescending(p => p.CreatedAt)
-            .Skip((query.Page - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .ToListAsync();
-
-        // 
-        var resourceItems = await BuildOutputsAsync(products);
-
-        var result = new PagedList<ProductOutputResource>
-        {
-            Items = resourceItems,
-            TotalItems = totalItems,
-            CurrentPage = query.Page,
-            TotalPages = (int)Math.Ceiling(totalItems / (double)query.PageSize)
-        };
-
-        return BaseResponse<PagedList<ProductOutputResource>>.Ok(result, "Products retrieved");
-    }
-
-    public async Task<BaseResponse<List<ProductOutputResource>>> GetAllAsync()
-    {
-        var products = await _context.Products
-            .OrderByDescending(p => p.CreatedAt)
-            .ToListAsync();
-
-        var responses = await BuildOutputsAsync(products);
-
-        return BaseResponse<List<ProductOutputResource>>.Ok(responses, "Products retrieved successfully");
-    }
+    // ------------------- PRIVATE HELPER METHODS -------------------
 
     private async Task UploadProductImagesAsync(long productId, List<IFormFile> images)
     {
@@ -426,5 +396,41 @@ public class ProductService : IProductService
         }
 
         return null;
+    }
+
+    private static IQueryable<Product> ApplyFilters(IQueryable<Product> queryable, ProductQueryResource query)
+    {
+        queryable = queryable.Where(p => p.DeletedAt == null);
+
+        if (query.Status.HasValue)
+        {
+            queryable = queryable.Where(p => p.Status == query.Status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var decodedSearch = WebUtility.UrlDecode(query.Search).Trim();
+            var normalizedSearch = decodedSearch.ToLower();
+            queryable = queryable.Where(p => p.Name!.ToLower().Contains(normalizedSearch) ||
+                                             p.Slug.Contains(normalizedSearch));
+        }
+
+        if (query.CategoryId.HasValue)
+        {
+            queryable = queryable.Where(p => p.Categories.Any(pc => pc.Id == query.CategoryId));
+        }
+
+        if (query.TagId.HasValue)
+        {
+            queryable = queryable.Where(p => p.ProductTags.Any(pt => pt.Id == query.TagId));
+        }
+
+        // Price filters intentionally commented out for now.
+        // if (query.MinPrice.HasValue)
+        //     queryable = queryable.Where(p => p.PriceMin >= query.MinPrice);
+        // if (query.MaxPrice.HasValue)
+        //     queryable = queryable.Where(p => p.PriceMax <= query.MaxPrice);
+
+        return queryable;
     }
 }
