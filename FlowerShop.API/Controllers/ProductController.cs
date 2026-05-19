@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FlowerShop.API.Controllers;
 
 [ApiController]
+[Route("api")]
 public class ProductController : ControllerBase
 {
     private readonly IProductService _productService;
@@ -18,31 +19,24 @@ public class ProductController : ControllerBase
 
     // ----------- PUBLIC ROUTE -----------
 
-    [HttpGet("/api/products")]
-    public async Task<IActionResult> GetAll([FromQuery] ProductQueryResource query)
+    [HttpGet("products")]
+    public async Task<IActionResult> GetProducts([FromQuery] ProductQueryResource query)
     {
         var result = await _productService.GetProductsAsync(query);
         return Ok(result);
     }
 
-    [HttpGet("/api/products/{id}")]
-    public async Task<IActionResult> GetById(long id)
+    [HttpGet("products/{identifier}")]
+    public async Task<IActionResult> GetByIdOrSlug(string identifier)
     {
-        var result = await _productService.GetByIdAsync(id);
-        if (!result.Success)
+        if (long.TryParse(identifier, out long id))
         {
-            return NotFound(result);
+            var idResult = await _productService.GetByIdAsync(id);
+            return idResult.Success ? Ok(idResult) : NotFound(idResult);
         }
 
-        return Ok(result);
-    }
-
-    [HttpGet("/api/products/slug/{slug}")]
-    public async Task<IActionResult> GetBySlug(string slug)
-    {
-        var result = await _productService.GetBySlugAsync(slug);
-        if (!result.Success) return NotFound(result);
-        return Ok(result);
+        var slugResult = await _productService.GetBySlugAsync(identifier);
+        return slugResult.Success ? Ok(slugResult) : NotFound(slugResult);
     }
 
     // ----------- ADMIN ROUTE -----------
@@ -58,7 +52,7 @@ public class ProductController : ControllerBase
             return BadRequest(result);
         }
 
-        return CreatedAtAction(nameof(GetById), new { id = result.Data?.Id }, result);
+        return CreatedAtAction(nameof(GetByIdOrSlug), new { identifier = result.Data?.Id }, result);
     }
 
     [HttpPut("/api/admin/products/{id}")]
