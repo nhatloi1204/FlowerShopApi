@@ -32,6 +32,7 @@ namespace FlowerShop.API.Models.Views
         public ProductStatus Status { get; set; }
         public long? CompanyId { get; set; }
         public List<string> ImageUrls { get; set; } = new();
+        public List<long> CategoryIds { get; set; } = new();
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

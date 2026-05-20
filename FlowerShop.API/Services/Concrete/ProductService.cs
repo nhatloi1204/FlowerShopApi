@@ -355,8 +355,14 @@ public class ProductService : IProductService
             .Select(m => m.FileName)
             .ToListAsync();
 
+        var categoryIds = await _context.ProductCategories
+            .Where(pc => pc.ProductId == product.Id)
+            .Select(pc => pc.CategoryId)
+            .ToListAsync();
+
         var response = _mapper.Map<ProductOutputResource>(product);
         response.ImageUrls = mediaUrls;
+        response.CategoryIds = categoryIds;
 
         return response;
     }
@@ -373,12 +379,24 @@ public class ProductService : IProductService
             .GroupBy(m => m.ModelId)
             .ToDictionary(g => g.Key, g => g.Select(m => m.FileName).ToList());
 
+        var categoryLookup = await _context.ProductCategories
+            .Where(pc => productIds.Contains(pc.ProductId))
+            .ToListAsync();
+
+        var categoriesByProduct = categoryLookup
+            .GroupBy(pc => pc.ProductId)
+            .ToDictionary(g => g.Key, g => g.Select(pc => pc.CategoryId).ToList());
+
         var responses = _mapper.Map<List<ProductOutputResource>>(products);
         foreach (var response in responses)
         {
             response.ImageUrls = mediaByProduct.TryGetValue(response.Id, out var urls)
                 ? urls
                 : new List<string>();
+
+            response.CategoryIds = categoriesByProduct.TryGetValue(response.Id, out var ids) 
+                ? ids 
+                : new List<long>();
         }
 
         return responses;
