@@ -60,5 +60,39 @@ namespace FlowerShop.API.Services.Concrete
 
             return _mapper.Map<MediaOutputResource>(media);
         }
+
+        public async Task<MediaOutputResource> SaveMediaUrlAsync(
+            string url,
+            long modelId,
+            string modelType,
+            string collectionName = "gallery")
+        {
+            var uri = new Uri(url);
+            var fileName = Path.GetFileName(uri.LocalPath);
+
+            var media = new Media
+            {
+                ModelType = modelType,
+                ModelId = modelId,
+                Uuid = Guid.NewGuid(),
+                CollectionName = collectionName,
+                Name = Path.GetFileNameWithoutExtension(fileName),
+                FileName = url,
+                MimeType = null,
+                Disk = "cloudinary",
+                Size = 0,
+                CustomProperties = "{}",
+                Manipulations = "{}",
+                GeneratedConversions = "{}",
+                ResponsiveImages = "{}",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Medias.Add(media);
+            await _context.SaveChangesAsync();
+
+            return _mapper.Map<MediaOutputResource>(media);
+        }
     }
 }
