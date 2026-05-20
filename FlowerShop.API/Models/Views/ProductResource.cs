@@ -15,8 +15,8 @@ namespace FlowerShop.API.Models.Views
         public long? CompanyId { get; set; }
         public List<long>? CategoryIds { get; set; }
         public List<long>? TagIds { get; set; }
-        public List<IFormFile>? Images { get; set; }
-        public List<string>? ExistingImageUrls { get; set; } = new List<string>();
+        //public List<IFormFile>? Images { get; set; }
+        public List<string>? ImageUrls { get; set; } = new List<string>();
     }
 
     public class ProductOutputResource
@@ -32,6 +32,7 @@ namespace FlowerShop.API.Models.Views
         public ProductStatus Status { get; set; }
         public long? CompanyId { get; set; }
         public List<string> ImageUrls { get; set; } = new();
+        public List<long> CategoryIds { get; set; } = new();
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

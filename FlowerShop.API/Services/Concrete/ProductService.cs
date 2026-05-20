@@ -153,13 +153,15 @@ public class ProductService : IProductService
                 }
             }
 
-            await _context.SaveChangesAsync();
-
-            if (request.Images != null && request.Images.Count > 0)
+            if (request.ImageUrls != null && request.ImageUrls.Count > 0)
             {
-                await UploadProductImagesAsync(product.Id, request.Images);
+                foreach (var url in request.ImageUrls)
+                {
+                    await _mediaService.SaveMediaUrlAsync(url, product.Id, ProductModelType, ProductImageCollection);
+                }
             }
 
+            await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
             var response = await BuildOutputAsync(product);
@@ -213,11 +215,7 @@ public class ProductService : IProductService
 
         await _context.SaveChangesAsync();
 
-        //if (request.Images != null && request.Images.Count > 0)
-        //{
-        //    await ReplaceProductImagesAsync(product.Id, request.Images);
-        //}
-        await HandleProductImagesAsync(product.Id, request.ExistingImageUrls, request.Images);
+        await HandleProductImageUrlsAsync(product.Id, request.ImageUrls);
 
         var response = await BuildOutputAsync(product);
 
@@ -244,10 +242,10 @@ public class ProductService : IProductService
 
     // ------------------- PRIVATE HELPER METHODS -------------------
 
-    private async Task HandleProductImagesAsync(long productId, List<string>? existingUrls, List<IFormFile>? newImages)
+    private async Task HandleProductImageUrlsAsync(long productId, List<string>? requestUrls)
     {
-        // Ensure existingUrls is not null to avoid null reference issues later
-        existingUrls ??= new List<string>();
+        // Ensure requestUrls is not null to avoid null reference issues later
+        requestUrls ??= new List<string>();
 
         // Retrieve the current list of Media for this product from the database
         var currentMedias = await _context.Medias
@@ -257,53 +255,37 @@ public class ProductService : IProductService
         // FIND DELETED IMAGES: Those that exist in the DB but are NOT in the list to keep (existingUrls)
         // ==> Admin has clicked the Delete (trash) button for that image on the Frontend
         var mediasToDelete = currentMedias
-            .Where(m => !existingUrls.Contains(m.FileName))
+            .Where(m => !requestUrls.Contains(m.FileName))
             .ToList();
 
         if (mediasToDelete.Count > 0)
         {
-            foreach (var media in mediasToDelete)
+            var deleteTasks = mediasToDelete.Select(async media =>
             {
                 var publicId = ExtractPublicId(media.CustomProperties);
                 if (!string.IsNullOrWhiteSpace(publicId))
                 {
                     await _cloudinaryService.DeleteImageAsync(publicId);
                 }
-            }
+            });
+            await Task.WhenAll(deleteTasks);
 
+            // Remove the media records from the database
             _context.Medias.RemoveRange(mediasToDelete);
             await _context.SaveChangesAsync();
         }
 
         // ADD NEW IMAGES: If the Admin has selected new files from the computer, proceed to upload them
-        if (newImages != null && newImages.Count > 0)
+        var urlsToInsert = requestUrls
+            .Where(url => !currentMedias.Any(m => m.FileName == url))
+            .ToList();
+        if (urlsToInsert.Count > 0)
         {
-            foreach (var image in newImages)
+            foreach (var url in urlsToInsert)
             {
-                // Upload new file to the "products" folder on Cloudinary
-                var uploadResult = await _cloudinaryService.UploadImageAsync(image, "products");
-                if (uploadResult == null)
-                {
-                    continue;
-                }
-
-                // Save the new media record in the database, linking it to the product
-                await _mediaService.SaveMediaAsync(uploadResult, image, productId, ProductModelType, ProductImageCollection);
+                await _mediaService.SaveMediaUrlAsync(url, productId, ProductModelType, ProductImageCollection);
             }
-        }
-    }
-
-    private async Task UploadProductImagesAsync(long productId, List<IFormFile> images)
-    {
-        foreach (var image in images)
-        {
-            var uploadResult = await _cloudinaryService.UploadImageAsync(image, "products");
-            if (uploadResult == null)
-            {
-                continue;
-            }
-
-            await _mediaService.SaveMediaAsync(uploadResult, image, productId, ProductModelType, ProductImageCollection);
+            await _context.SaveChangesAsync();
         }
     }
 
@@ -373,8 +355,14 @@ public class ProductService : IProductService
             .Select(m => m.FileName)
             .ToListAsync();
 
+        var categoryIds = await _context.ProductCategories
+            .Where(pc => pc.ProductId == product.Id)
+            .Select(pc => pc.CategoryId)
+            .ToListAsync();
+
         var response = _mapper.Map<ProductOutputResource>(product);
         response.ImageUrls = mediaUrls;
+        response.CategoryIds = categoryIds;
 
         return response;
     }
@@ -391,12 +379,24 @@ public class ProductService : IProductService
             .GroupBy(m => m.ModelId)
             .ToDictionary(g => g.Key, g => g.Select(m => m.FileName).ToList());
 
+        var categoryLookup = await _context.ProductCategories
+            .Where(pc => productIds.Contains(pc.ProductId))
+            .ToListAsync();
+
+        var categoriesByProduct = categoryLookup
+            .GroupBy(pc => pc.ProductId)
+            .ToDictionary(g => g.Key, g => g.Select(pc => pc.CategoryId).ToList());
+
         var responses = _mapper.Map<List<ProductOutputResource>>(products);
         foreach (var response in responses)
         {
             response.ImageUrls = mediaByProduct.TryGetValue(response.Id, out var urls)
                 ? urls
                 : new List<string>();
+
+            response.CategoryIds = categoriesByProduct.TryGetValue(response.Id, out var ids) 
+                ? ids 
+                : new List<long>();
         }
 
         return responses;
