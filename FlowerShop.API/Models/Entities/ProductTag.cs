@@ -21,7 +21,10 @@ public class ProductTag
             entity.HasKey(e => e.Id);
 
             entity.Property(e => e.Id).HasColumnName("id");
+
             entity.Property(e => e.Name).HasColumnName("name").HasColumnType("varchar(255)");
+            entity.HasIndex(e => e.Name).IsUnique();
+
             entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasColumnType("timestamp with time zone");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamp with time zone");
             entity.Property(e => e.DeletedAt).HasColumnName("deleted_at").HasColumnType("timestamp with time zone");
@@ -32,10 +35,7 @@ public class ProductTag
             // Many-to-Many: ProductTag -> Product via ProductProductTag
             entity.HasMany(e => e.Products)
                 .WithMany(p => p.ProductTags)
-                .UsingEntity<ProductProductTag>(
-                    l => l.HasOne<Product>().WithMany().HasForeignKey(ppt => ppt.ProductId),
-                    r => r.HasOne<ProductTag>().WithMany().HasForeignKey(ppt => ppt.TagId),
-                    j => j.HasKey(ppt => new { ppt.ProductId, ppt.TagId }));
+                .UsingEntity<ProductProductTag>();
         });
     }
 }

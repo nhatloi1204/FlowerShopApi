@@ -20,11 +20,29 @@ public class AdminSeeder
     {
         try
         {
-            var adminRole = await SeedSuperAdminRoleAsync();
-            await SeedPermissionsAndAssignToRoleAsync(adminRole);
-            await SeedSuperAdminUserAsync(adminRole);
+            string email = _config["SuperAdmin:Email"];
+            if (await _context.Users.AnyAsync(u => u.Email == email)) return;
 
-            Console.WriteLine("SuperAdmin Initialization Completed!");
+            var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Title == "SuperAdmin");
+            if (adminRole == null)
+            {
+                adminRole = new Role { Title = "SuperAdmin", CreatedAt = DateTime.UtcNow };
+                _context.Roles.Add(adminRole);
+            }
+
+            await SeedPermissionsAndAssignToRoleAsync(adminRole);
+            var user = new User
+            {
+                Name = _config["SuperAdmin:Username"] ?? "Super Admin",
+                Email = email,
+                Password = PasswordHelper.HashPassword(_config["SuperAdmin:Password"]),
+                CreatedAt = DateTime.UtcNow,
+                Verified = true
+            };
+            _context.Users.Add(user);
+
+            _context.RoleUsers.Add(new RoleUser { User = user, Role = adminRole });
+            await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -32,21 +50,6 @@ public class AdminSeeder
         }
     }
 
-    // 1. Tạo duy nhất Role SuperAdmin
-    private async Task<Role> SeedSuperAdminRoleAsync()
-    {
-        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Title == "SuperAdmin");
-        if (role == null)
-        {
-            role = new Role { Title = "SuperAdmin", CreatedAt = DateTime.UtcNow };
-            _context.Roles.Add(role);
-            await _context.SaveChangesAsync();
-            Console.WriteLine("✅ Role 'SuperAdmin' created.");
-        }
-        return role;
-    }
-
-    // 2. Tạo Permissions và gán hết cho Role vừa tìm được
     private async Task SeedPermissionsAndAssignToRoleAsync(Role adminRole)
     {
         var permissionTitles = new List<string>
@@ -59,7 +62,6 @@ public class AdminSeeder
             "permission.read", "permission.assign"
         };
 
-        // Tạo những Permission chưa có trong DB
         var existingPermissionTitles = await _context.Permissions.Select(p => p.Title).ToListAsync();
         var newPermissions = permissionTitles
             .Where(t => !existingPermissionTitles.Contains(t))
@@ -69,50 +71,31 @@ public class AdminSeeder
         if (newPermissions.Any())
         {
             await _context.Permissions.AddRangeAsync(newPermissions);
-            await _context.SaveChangesAsync();
         }
 
-        // Gán tất cả Permission (cũ + mới) cho duy nhất SuperAdmin
-        var allPermissions = await _context.Permissions.ToListAsync();
+        var existingPermissionIds = await _context.Permissions
+            .Where(p => existingPermissionTitles.Contains(p.Title))
+            .Select(p => p.Id)
+            .ToListAsync();
+
         var existingMappingIds = await _context.PermissionRoles
             .Where(rp => rp.RoleId == adminRole.Id)
             .Select(rp => rp.PermissionId)
             .ToListAsync();
 
-        var mappingsToAdd = allPermissions
-            .Where(p => !existingMappingIds.Contains(p.Id))
-            .Select(p => new PermissionRole { RoleId = adminRole.Id, PermissionId = p.Id })
+        var mappingsToAdd = existingPermissionIds
+            .Where(id => !existingMappingIds.Contains(id))
+            .Select(id => new PermissionRole { Role = adminRole, PermissionId = id })
             .ToList();
+
+        foreach (var newPerm in newPermissions)
+        {
+            mappingsToAdd.Add(new PermissionRole { Role = adminRole, Permission = newPerm });
+        }
 
         if (mappingsToAdd.Any())
         {
             await _context.PermissionRoles.AddRangeAsync(mappingsToAdd);
-            await _context.SaveChangesAsync();
-            Console.WriteLine($"Assigned {mappingsToAdd.Count} permissions to SuperAdmin.");
         }
-    }
-
-    // 3. Tạo User và gắn vào Role SuperAdmin
-    private async Task SeedSuperAdminUserAsync(Role adminRole)
-    {
-        string email = _config["SuperAdmin:Email"];
-        if (string.IsNullOrEmpty(email) || await _context.Users.AnyAsync(u => u.Email == email)) return;
-
-        var user = new User
-        {
-            Name = _config["SuperAdmin:Username"] ?? "Super Admin",
-            Email = email,
-            Password = PasswordHelper.HashPassword(_config["SuperAdmin:Password"]),
-            CreatedAt = DateTime.UtcNow,
-            Verified = true
-        };
-
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        // Gán User vào Role
-        _context.RoleUsers.Add(new RoleUser { UserId = user.Id, RoleId = adminRole.Id });
-        await _context.SaveChangesAsync();
-        Console.WriteLine($"User {email} is now a SuperAdmin.");
     }
 }

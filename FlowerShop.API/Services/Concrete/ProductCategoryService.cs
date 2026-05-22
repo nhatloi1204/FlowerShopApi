@@ -48,18 +48,21 @@ public class ProductCategoryService : IProductCategoryService
             return BaseResponse<ProductCategoryOutputResource>.Fail("Category name is required");
         }
 
-        var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
+        var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id && c.DeletedAt == null);
         if (category == null)
         {
             return BaseResponse<ProductCategoryOutputResource>.Fail("Category not found");
         }
 
-        if (!string.Equals(category.Name, request.Name, StringComparison.OrdinalIgnoreCase))
+        var originalName = category.Name;
+
+        _mapper.Map(request, category);
+
+        if (!string.Equals(originalName, request.Name, StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(category.Slug))
         {
             category.Slug = await _slugService.GenerateUniqueSlugAsync(request.Name, _context.Categories);
         }
 
-        _mapper.Map(request, category);
         category.UpdatedAt = DateTime.UtcNow;
 
         _context.Categories.Update(category);
@@ -75,6 +78,14 @@ public class ProductCategoryService : IProductCategoryService
         if (category == null)
         {
             return BaseResponse<bool>.Fail("Category not found");
+        }
+
+        var hasProducts = await _context.Set<ProductProductCategory>()
+                                        .AnyAsync(pc => pc.CategoryId == id);
+
+        if (hasProducts)
+        {
+            return BaseResponse<bool>.Fail("Cannot delete category containing active products!");
         }
 
         category.DeletedAt = DateTime.UtcNow;
@@ -101,8 +112,9 @@ public class ProductCategoryService : IProductCategoryService
     public async Task<BaseResponse<List<ProductCategoryOutputResource>>> GetAllAsync()
     {
         var categories = await _context.Categories
-            .OrderBy(c => c.Name)
-            .ToListAsync();
+        .Where(c => c.DeletedAt == null)
+        .OrderBy(c => c.Name)
+        .ToListAsync();
 
         var response = _mapper.Map<List<ProductCategoryOutputResource>>(categories);
         return BaseResponse<List<ProductCategoryOutputResource>>.Ok(response, "Categories retrieved successfully");

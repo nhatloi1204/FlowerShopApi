@@ -10,8 +10,13 @@ namespace FlowerShop.API.Data
         {
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), "Data", "geo.json");
 
-            Console.WriteLine($"Check file at: {Path.GetFullPath(filePath)}");
             if (!File.Exists(filePath)) return;
+
+            if (await context.Set<Province>().AnyAsync())
+            {
+                Console.WriteLine("Geo data already seeded. Skipping...");
+                return;
+            }
 
             using var jsonStream = File.OpenRead(filePath);
             using var document = await JsonDocument.ParseAsync(jsonStream);
@@ -21,6 +26,11 @@ namespace FlowerShop.API.Data
             List<JsonElement> provinceElements = root.ValueKind == JsonValueKind.Array
                 ? root.EnumerateArray().ToList()
                 : new List<JsonElement> { root };
+
+            var existingProvinces = await context.Set<Province>().IgnoreQueryFilters().ToDictionaryAsync(p => p.Id);
+            var existingWards = await context.Set<Ward>().IgnoreQueryFilters().ToDictionaryAsync(w => w.Id);
+
+            var now = DateTime.UtcNow;
 
             foreach (var pElem in provinceElements)
             {
@@ -33,9 +43,9 @@ namespace FlowerShop.API.Data
                     .IgnoreQueryFilters()
                     .FirstOrDefaultAsync(p => p.Id == pId);
 
-                if (province == null)
+                if (!existingProvinces.TryGetValue(pId, out province))
                 {
-                    province = new Province { Id = pId, Name = pName, CreatedAt = DateTime.UtcNow };
+                    province = new Province { Id = pId, Name = pName, CreatedAt = now };
                     context.Set<Province>().Add(province);
                 }
                 else
@@ -56,14 +66,14 @@ namespace FlowerShop.API.Data
                             .IgnoreQueryFilters()
                             .FirstOrDefaultAsync(w => w.Id == wId);
 
-                        if (ward == null)
+                        if (!existingWards.TryGetValue(wId, out ward))
                         {
                             context.Set<Ward>().Add(new Ward
                             {
                                 Id = wId,
                                 Name = wName,
                                 ProvinceId = pId,
-                                CreatedAt = DateTime.UtcNow
+                                CreatedAt = now
                             });
                         }
                         else
@@ -76,8 +86,8 @@ namespace FlowerShop.API.Data
                     }
                 }
 
-                await context.SaveChangesAsync();
             }
+            await context.SaveChangesAsync();
         }
     }
 }

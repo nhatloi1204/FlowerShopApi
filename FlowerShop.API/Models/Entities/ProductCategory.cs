@@ -30,7 +30,7 @@ public class ProductProductCategory
             entity.HasOne(e => e.Category)
                 .WithMany()
                 .HasForeignKey(e => e.CategoryId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict); // --> Prevent from deleting category having active products
         });
     }
 }
