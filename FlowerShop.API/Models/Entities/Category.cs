@@ -37,10 +37,7 @@ public class ProductCategory
             // Many-to-Many: ProductCategory -> Product via ProductProductCategory
             entity.HasMany(e => e.Products)
                 .WithMany(p => p.Categories)
-                .UsingEntity<ProductProductCategory>(
-                    l => l.HasOne<Product>().WithMany().HasForeignKey(pc => pc.ProductId),
-                    r => r.HasOne<ProductCategory>().WithMany().HasForeignKey(pc => pc.CategoryId),
-                    j => j.HasKey(pc => new { pc.ProductId, pc.CategoryId }));
+                .UsingEntity<ProductProductCategory>();
         });
     }
 }

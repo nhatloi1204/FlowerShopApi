@@ -62,18 +62,12 @@ public class Product
             // Many-to-Many: Product -> ProductCategory via ProductProductCategory
             entity.HasMany(e => e.Categories)
                 .WithMany(c => c.Products)
-                .UsingEntity<ProductProductCategory>(
-                    l => l.HasOne<ProductCategory>().WithMany().HasForeignKey(pc => pc.CategoryId),
-                    r => r.HasOne<Product>().WithMany().HasForeignKey(pc => pc.ProductId),
-                    j => j.HasKey(pc => new { pc.ProductId, pc.CategoryId }));
+                .UsingEntity<ProductProductCategory>();
 
             // Many-to-Many: Product -> ProductTag via ProductProductTag
             entity.HasMany(e => e.ProductTags)
                 .WithMany(pt => pt.Products)
-                .UsingEntity<ProductProductTag>(
-                    l => l.HasOne<ProductTag>().WithMany().HasForeignKey(ppt => ppt.TagId),
-                    r => r.HasOne<Product>().WithMany().HasForeignKey(ppt => ppt.ProductId),
-                    j => j.HasKey(ppt => new { ppt.ProductId, ppt.TagId }));
+                .UsingEntity<ProductProductTag>();
         });
     }
 }

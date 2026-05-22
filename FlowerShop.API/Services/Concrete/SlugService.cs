@@ -12,16 +12,27 @@ public class SlugService : ISlugService
     public async Task<string> GenerateUniqueSlugAsync<T>(string name, IQueryable<T> dbSet) where T : class
     {
         var baseSlug = Slugify(name);
-        var slug = baseSlug;
-        var counter = 1;
 
-        while (await dbSet.AnyAsync(e => EF.Property<string>(e, "Slug") == slug))
+        var existingSlugs = await dbSet
+                            .Select(e => EF.Property<string>(e, "Slug"))
+                            .Where(slug => slug == baseSlug || slug.StartsWith(baseSlug + "-"))
+                            .ToListAsync();
+
+        if (!existingSlugs.Contains(baseSlug))
         {
-            slug = $"{baseSlug}-{counter}";
-            counter++;
+            return baseSlug;
         }
 
-        return slug;
+        var counter = 1;
+        var newSlug = $"{baseSlug}-{counter}";
+
+        while (existingSlugs.Contains(newSlug))
+        {
+            counter++;
+            newSlug = $"{baseSlug}-{counter}";
+        }
+
+        return newSlug;
     }
 
     private static string Slugify(string input)
