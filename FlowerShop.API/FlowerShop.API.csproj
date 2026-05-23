@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <None Include=".copilot\AUTHORIZATION_PLAN.md" />
+    <None Include=".copilot\order-module-instruction.md" />
     <None Include=".copilot\PHASE_1\00_START_HERE.md" />
     <None Include=".copilot\PHASE_1\DELIVERY_REPORT.md" />
     <None Include=".copilot\instruction.md" />

@@ -13,6 +13,7 @@ namespace FlowerShop.API.Models.Entities
         public decimal TotalPrice { get; set; }
         public decimal AmountPaid { get; set; } // Total amount paid by customer (can be less than TotalPrice if they choose to pay on delivery)
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
+        public string ShippingAddress { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
@@ -44,6 +45,8 @@ namespace FlowerShop.API.Models.Entities
                 entity.Property(e => e.AmountPaid).HasColumnName("amount_paid").HasColumnType("numeric(15,2)");
                 entity.Property(e => e.ReceiveDate).HasColumnName("receive_date").HasColumnType("date");
                 entity.Property(e => e.ReceiveTime).HasColumnName("receive_time").HasColumnType("time");
+
+                entity.Property(e => e.ShippingAddress).HasColumnName("shipping_address").HasColumnType("jsonb");
 
                 // Mối quan hệ
                 entity.HasOne(d => d.Customer).WithMany(p => p.Orders).HasForeignKey(d => d.CustomerId).OnDelete(DeleteBehavior.SetNull);
