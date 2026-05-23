@@ -2,7 +2,7 @@ namespace FlowerShop.API.Models.Views;
 
 public class ProductTagInputResource
 {
-    public string? Name { get; set; }
+    public string Name { get; set; } = null!;
 }
 
 public class ProductTagOutputResource
