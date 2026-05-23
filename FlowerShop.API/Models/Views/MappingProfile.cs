@@ -38,6 +38,15 @@ public class MappingProfile : Profile
         CreateMap<Media, MediaOutputResource>();
         #endregion
 
+        #region Orders
+        CreateMap<Order, OrderOutputResource>()
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(dest => dest.DeliveryMode, opt => opt.MapFrom(src => src.DeliveryMode.ToString()))
+            .ForMember(dest => dest.ShippingAddress, opt => opt.Ignore()); 
+
+        CreateMap<OrderItem, OrderItemOutputResource>();
+        #endregion
+
         #region GoogleUserInfo
         CreateMap<GoogleUserInfoResource, Customer>()
             .ForMember(dest => dest.ProviderAccountId, opt => opt.MapFrom(src => src.Sub))

@@ -1,13 +1,14 @@
+using DotNetEnv;
 using FlowerShop.API.Data;
 using FlowerShop.API.Helpers;
 using FlowerShop.API.Services.Abstract;
 using FlowerShop.API.Services.Concrete;
+using FlowerShop.API.Services.Implementations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
-using DotNetEnv;
 
 DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
 
@@ -90,6 +91,8 @@ builder.Services.AddScoped<IProductCategoryService, ProductCategoryService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
+builder.Services.AddScoped<IProductTagService, ProductTagService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 // Register Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();

@@ -360,9 +360,15 @@ public class ProductService : IProductService
             .Select(pc => pc.CategoryId)
             .ToListAsync();
 
+        var tagIds = await _context.ProductProductTags
+            .Where(pt => pt.ProductId == product.Id)
+            .Select(pt => pt.TagId)
+            .ToListAsync();
+
         var response = _mapper.Map<ProductOutputResource>(product);
         response.ImageUrls = mediaUrls;
         response.CategoryIds = categoryIds;
+        response.TagIds = tagIds;
 
         return response;
     }
@@ -387,6 +393,14 @@ public class ProductService : IProductService
             .GroupBy(pc => pc.ProductId)
             .ToDictionary(g => g.Key, g => g.Select(pc => pc.CategoryId).ToList());
 
+        var tagLookup = await _context.ProductProductTags
+            .Where(pt => productIds.Contains(pt.ProductId))
+            .ToListAsync();
+
+        var tagsByProduct = tagLookup
+            .GroupBy(pt => pt.ProductId)
+            .ToDictionary(g => g.Key, g => g.Select(pt => pt.TagId).ToList());
+
         var responses = _mapper.Map<List<ProductOutputResource>>(products);
         foreach (var response in responses)
         {
@@ -396,6 +410,10 @@ public class ProductService : IProductService
 
             response.CategoryIds = categoriesByProduct.TryGetValue(response.Id, out var ids) 
                 ? ids 
+                : new List<long>();
+
+            response.TagIds = tagsByProduct.TryGetValue(response.Id, out var tIds)
+                ? tIds
                 : new List<long>();
         }
 
