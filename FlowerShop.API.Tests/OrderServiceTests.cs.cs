@@ -17,7 +17,6 @@ public class OrderServiceTests
 
     public OrderServiceTests()
     {
-        // Khởi tạo Mapper thật giống hệt cấu hình MappingProfile trong dự án của mày
         var config = new MapperConfiguration(cfg =>
         {
             cfg.AddProfile<MappingProfile>();
@@ -26,7 +25,6 @@ public class OrderServiceTests
         _mapper = config.CreateMapper();
     }
 
-    // Helper tạo DbContext chạy ngầm trong RAM sạch sẽ cho mỗi Test Case
     private AppDbContext CreateInMemoryDbContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -82,7 +80,7 @@ public class OrderServiceTests
         {
             Id = 1,
             CustomerId = 1,
-            Name = "Địa chỉ mặc định", // 🎯 FIX: Bổ sung thuộc tính Name bắt buộc của CustomerAddress
+            Name = "Địa chỉ mặc định", // FIX: Bổ sung thuộc tính Name bắt buộc của CustomerAddress
             Address = "123 Lý Thường Kiệt",
             ReceiveCustomerName = "Lợi",
             ReceiveCustomerPhone = "0901234567",
@@ -122,7 +120,7 @@ public class OrderServiceTests
         {
             Id = 1,
             CustomerId = 1,
-            Name = "Địa chỉ mặc định", // 🎯 FIX: Bổ sung Name ở đây
+            Name = "Địa chỉ mặc định", 
             Address = "123 Lý Thường Kiệt",
             ReceiveCustomerName = "Lợi",
             ReceiveCustomerPhone = "0901234567",
@@ -162,7 +160,7 @@ public class OrderServiceTests
         {
             Id = 1,
             CustomerId = 1,
-            Name = "Địa chỉ mặc định", // 🎯 FIX: Bổ sung Name ở đây
+            Name = "Địa chỉ mặc định",
             Address = "123 Lý Thường Kiệt",
             ReceiveCustomerName = "Lợi",
             ReceiveCustomerPhone = "0901234567",
@@ -201,7 +199,7 @@ public class OrderServiceTests
         {
             Id = 1,
             CustomerId = 1,
-            Name = "Địa chỉ mặc định", // 🎯 FIX: Bổ sung Name ở đây
+            Name = "Địa chỉ mặc định",
             Address = "123 Lý Thường Kiệt",
             ReceiveCustomerName = "Lợi",
             ReceiveCustomerPhone = "0901234567",
@@ -240,7 +238,6 @@ public class OrderServiceTests
         orderInDb.Should().NotBeNull();
         orderInDb!.OrderItems.First().ProductImage.Should().Be("hoa-ly.jpg");
 
-        // 🎯 FIX CHÍ MẠNG: Deserialize chuỗi JSONB ra để check chuẩn chỉ cấu trúc
         var shippingAddressObj = JsonSerializer.Deserialize<Dictionary<string, string>>(orderInDb.ShippingAddress);
         shippingAddressObj.Should().NotBeNull();
         shippingAddressObj!["FullAddress"].Should().Be("123 Lý Thường Kiệt");

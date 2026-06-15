@@ -59,5 +59,16 @@ public class MappingProfile : Profile
                 dest.UpdatedAt = DateTime.UtcNow;
             });
         #endregion
+
+        #region
+        CreateMap<Customer, CustomerOutputResource>();
+        CreateMap<CustomerAddress, CustomerAddressOutputResource>();
+        CreateMap<CustomerInputResource, Customer>();
+        #endregion
+
+        #region 
+        CreateMap<CustomerAddressInputResource, CustomerAddress>();
+        CreateMap<CustomerAddress, CustomerAddressOutputResource>();
+        #endregion
     }
 }
